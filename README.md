@@ -1,6 +1,8 @@
-# ProjectPulse API
+# ProjectPulse
 
-Clean Architecture project-management backend built with **ASP.NET Core 8**, **EF Core**, **CQRS (MediatR)**, **FluentValidation**, **xUnit**, **Docker Compose**, and **GitHub Actions**.
+Clean Architecture project-management system: **ASP.NET Core 8 API** + minimal **React dashboard** for demos.
+
+The backend is the portfolio centerpiece; the frontend is a thin demo layer for recruiters and hiring managers.
 
 ## What this demonstrates
 
@@ -42,17 +44,9 @@ flowchart TB
   Infra --> Db
 ```
 
-## Run locally (one command)
+## Run locally
 
-### Docker Compose
-
-```bash
-docker compose up --build
-```
-
-Open **http://localhost:5000/swagger**
-
-### .NET CLI
+### 1. API
 
 Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
@@ -61,7 +55,36 @@ dotnet restore
 dotnet run --project src/ProjectPulse.Api
 ```
 
-Swagger: **http://localhost:5000/swagger**
+- Swagger: **http://localhost:5000/swagger**
+- API base: **http://localhost:5000**
+
+Or with Docker:
+
+```bash
+docker compose up --build api
+```
+
+### 2. Frontend dashboard
+
+Prerequisites: [Node.js 20+](https://nodejs.org/)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- Dashboard: **http://localhost:5173**
+
+The Vite dev server proxies `/api` to `http://localhost:5000`.
+
+### Demo flow
+
+1. Open the dashboard — seeded projects and stats load automatically.
+2. Create a project and add a task.
+3. Open a task — assign a user, change status, add a comment.
+4. Check Activity for audit log updates.
+5. Open Swagger to show the API contract and run `dotnet test` for CI.
 
 ## Example API requests
 
@@ -103,7 +126,7 @@ GitHub Actions runs `dotnet restore`, `dotnet build`, and `dotnet test` on every
 ## Project structure
 
 ```
-src/
+src/                          # .NET Clean Architecture API
   ProjectPulse.Api/
   ProjectPulse.Application/
   ProjectPulse.Domain/
@@ -111,5 +134,6 @@ src/
 tests/
   ProjectPulse.UnitTests/
   ProjectPulse.IntegrationTests/
+frontend/                     # React + Vite + Tailwind dashboard
 ```
 

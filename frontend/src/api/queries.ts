@@ -1,0 +1,202 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getData, patchData, postData, putData } from './client'
+import type {
+  AuditLog,
+  Comment,
+  Dashboard,
+  Project,
+  ProjectMember,
+  ProjectSummary,
+  Task,
+  User,
+} from './types'
+
+export const queryKeys = {
+  dashboard: ['dashboard'] as const,
+  projects: ['projects'] as const,
+  project: (id: string) => ['project', id] as const,
+  projectSummary: (id: string) => ['projectSummary', id] as const,
+  projectMembers: (id: string) => ['projectMembers', id] as const,
+  projectActivity: (id: string) => ['projectActivity', id] as const,
+  tasks: (projectId?: string) => ['tasks', projectId ?? 'all'] as const,
+  task: (id: string) => ['task', id] as const,
+  taskComments: (id: string) => ['taskComments', id] as const,
+  activity: ['activity'] as const,
+  users: ['users'] as const,
+}
+
+export function useDashboard() {
+  return useQuery({
+    queryKey: queryKeys.dashboard,
+    queryFn: () => getData<Dashboard>('/api/dashboard'),
+  })
+}
+
+export function useProjects() {
+  return useQuery({
+    queryKey: queryKeys.projects,
+    queryFn: () => getData<Project[]>('/api/projects'),
+  })
+}
+
+export function useProject(id: string) {
+  return useQuery({
+    queryKey: queryKeys.project(id),
+    queryFn: () => getData<Project>(`/api/projects/${id}`),
+    enabled: !!id,
+  })
+}
+
+export function useProjectSummary(id: string) {
+  return useQuery({
+    queryKey: queryKeys.projectSummary(id),
+    queryFn: () => getData<ProjectSummary>(`/api/projects/${id}/summary`),
+    enabled: !!id,
+  })
+}
+
+export function useProjectMembers(id: string) {
+  return useQuery({
+    queryKey: queryKeys.projectMembers(id),
+    queryFn: () => getData<ProjectMember[]>(`/api/projects/${id}/members`),
+    enabled: !!id,
+  })
+}
+
+export function useProjectActivity(id: string) {
+  return useQuery({
+    queryKey: queryKeys.projectActivity(id),
+    queryFn: () => getData<AuditLog[]>(`/api/projects/${id}/activity`),
+    enabled: !!id,
+  })
+}
+
+export function useTasks(projectId?: string) {
+  const params = projectId ? `?projectId=${projectId}` : ''
+  return useQuery({
+    queryKey: queryKeys.tasks(projectId),
+    queryFn: () => getData<Task[]>(`/api/tasks${params}`),
+  })
+}
+
+export function useTask(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.task(id ?? ''),
+    queryFn: () => getData<Task>(`/api/tasks/${id}`),
+    enabled: !!id,
+  })
+}
+
+export function useTaskComments(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.taskComments(id ?? ''),
+    queryFn: () => getData<Comment[]>(`/api/tasks/${id}/comments`),
+    enabled: !!id,
+  })
+}
+
+export function useActivity() {
+  return useQuery({
+    queryKey: queryKeys.activity,
+    queryFn: () => getData<AuditLog[]>('/api/activity?limit=100'),
+  })
+}
+
+export function useUsers() {
+  return useQuery({
+    queryKey: queryKeys.users,
+    queryFn: () => getData<User[]>('/api/users'),
+  })
+}
+
+function invalidateTaskQueries(queryClient: ReturnType<typeof useQueryClient>, projectId?: string) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+  queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks() })
+  if (projectId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectSummary(projectId) })
+    queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+  }
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string }) =>
+      postData<Project>('/api/projects', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+    },
+  })
+}
+
+export function useCreateTask(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      title: string
+      description?: string
+      priority: string
+      dueDateUtc?: string
+    }) =>
+      postData<Task>('/api/tasks', {
+        projectId,
+        ...body,
+      }),
+    onSuccess: () => invalidateTaskQueries(queryClient, projectId),
+  })
+}
+
+export function useUpdateTaskStatus(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (status: string) =>
+      patchData<Task>(`/api/tasks/${taskId}/status`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}
+
+export function useAssignTask(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (assigneeId: string | null) =>
+      patchData<Task>(`/api/tasks/${taskId}/assign`, { assigneeId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}
+
+export function useUpdateTask(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      title: string
+      description?: string
+      priority: string
+      dueDateUtc?: string | null
+    }) => putData<Task>(`/api/tasks/${taskId}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}
+
+export function useAddComment(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: string) =>
+      postData<Comment>(`/api/tasks/${taskId}/comments`, { body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.taskComments(taskId) })
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}

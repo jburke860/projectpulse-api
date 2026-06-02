@@ -19,6 +19,10 @@ Thumbs.db
 .idea/
 *.swp
 
+## Node
+node_modules/
+frontend/dist/
+
 ## Secrets
 appsettings.*.local.json
 .env

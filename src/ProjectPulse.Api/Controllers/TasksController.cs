@@ -22,6 +22,27 @@ public class TasksController : ControllerBase
         return Ok(ApiResult<TaskDto>.Ok(result, "Task created."));
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ApiResult<TaskDto>>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTaskByIdQuery(id), cancellationToken);
+        return Ok(ApiResult<TaskDto>.Ok(result));
+    }
+
+    [HttpGet("{id:guid}/comments")]
+    public async Task<ActionResult<ApiResult<IReadOnlyList<CommentDto>>>> GetComments(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTaskCommentsQuery(id), cancellationToken);
+        return Ok(ApiResult<IReadOnlyList<CommentDto>>.Ok(result));
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<ApiResult<TaskDto>>> Update(Guid id, [FromBody] UpdateTaskRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new UpdateTaskCommand(id, request), cancellationToken);
+        return Ok(ApiResult<TaskDto>.Ok(result, "Task updated."));
+    }
+
     [HttpGet]
     public async Task<ActionResult<ApiResult<IReadOnlyList<TaskDto>>>> List(
         [FromQuery] Guid? projectId,

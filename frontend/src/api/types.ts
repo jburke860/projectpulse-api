@@ -1,0 +1,80 @@
+export interface ApiResult<T> {
+  success: boolean
+  data: T
+  message?: string
+  errors?: string[]
+}
+
+export interface Project {
+  id: string
+  name: string
+  description: string | null
+  createdAtUtc: string
+  memberCount: number
+  taskCount: number
+}
+
+export interface ProjectSummary {
+  id: string
+  name: string
+  totalTasks: number
+  openTasks: number
+  inProgressTasks: number
+  doneTasks: number
+  overdueTasks: number
+}
+
+export interface ProjectMember {
+  userId: string
+  displayName: string
+  email: string
+  role: string
+}
+
+export interface Task {
+  id: string
+  projectId: string
+  title: string
+  description: string | null
+  status: string
+  priority: string
+  dueDateUtc: string | null
+  assigneeId: string | null
+  assigneeName: string | null
+  createdAtUtc: string
+}
+
+export interface Comment {
+  id: string
+  taskId: string
+  authorId: string
+  authorName: string
+  body: string
+  createdAtUtc: string
+}
+
+export interface AuditLog {
+  id: string
+  projectId: string
+  taskId: string | null
+  actorId: string
+  actorName: string
+  action: string
+  entityType: string
+  message: string
+  createdAtUtc: string
+}
+
+export interface Dashboard {
+  totalProjects: number
+  openTasks: number
+  completedTasks: number
+  overdueTasks: number
+  recentActivity: AuditLog[]
+}
+
+export interface User {
+  id: string
+  displayName: string
+  email: string
+}

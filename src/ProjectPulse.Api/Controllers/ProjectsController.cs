@@ -15,6 +15,13 @@ public class ProjectsController : ControllerBase
 
     public ProjectsController(IMediator mediator) => _mediator = mediator;
 
+    [HttpGet]
+    public async Task<ActionResult<ApiResult<IReadOnlyList<ProjectDto>>>> List(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetProjectsQuery(), cancellationToken);
+        return Ok(ApiResult<IReadOnlyList<ProjectDto>>.Ok(result));
+    }
+
     [HttpPost]
     public async Task<ActionResult<ApiResult<ProjectDto>>> Create([FromBody] CreateProjectRequest request, CancellationToken cancellationToken)
     {
@@ -34,6 +41,13 @@ public class ProjectsController : ControllerBase
     {
         await _mediator.Send(new AddProjectMemberCommand(id, request), cancellationToken);
         return Ok(ApiResult<object>.Ok(new { }, "Member added."));
+    }
+
+    [HttpGet("{id:guid}/members")]
+    public async Task<IActionResult> GetMembers(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetProjectMembersQuery(id), cancellationToken);
+        return Ok(ApiResult<object>.Ok(result));
     }
 
     [HttpGet("{id:guid}/activity")]
