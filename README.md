@@ -113,6 +113,3 @@ tests/
   ProjectPulse.IntegrationTests/
 ```
 
-## Resume bullet (when complete)
-
-Built a Clean Architecture project-management API using ASP.NET Core, C#, EF Core, CQRS-style application services, FluentValidation, xUnit, integration tests, Docker Compose, Swagger/OpenAPI, and GitHub Actions CI, with role-based workflows, audit logging, seeded demo data, and local one-command setup.
