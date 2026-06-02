@@ -58,7 +58,7 @@ The dashboard shows project/task metrics, seeded workspace activity, and a quick
 
 Swagger exposes the backend API contract for Projects, Tasks, Activity, Dashboard, and Users endpoints.
 
-![Swagger API overview](readme_images/swagger_api_overview.png)
+![Swagger API overview](readme_images/swagger.png)
 
 ### Projects page
 
