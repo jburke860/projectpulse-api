@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   useCreateTask,
+  useDeleteProject,
   useProject,
   useProjectActivity,
   useProjectMembers,
@@ -21,12 +22,14 @@ const statusColors: Record<string, string> = {
 
 export function ProjectDetailPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const { data: project } = useProject(id)
   const { data: summary } = useProjectSummary(id)
   const { data: members = [] } = useProjectMembers(id)
   const { data: tasks = [] } = useTasks(id)
   const { data: activity = [] } = useProjectActivity(id)
   const createTask = useCreateTask(id)
+  const deleteProject = useDeleteProject()
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [taskTitle, setTaskTitle] = useState('')
@@ -41,14 +44,36 @@ export function ProjectDetailPage() {
       ? Math.round((summary.doneTasks / summary.totalTasks) * 100)
       : 0
 
+  const handleDeleteProject = () => {
+    const confirmed = window.confirm(
+      `Delete "${project.name}" and all of its tasks? This cannot be undone.`,
+    )
+
+    if (confirmed) {
+      deleteProject.mutate(project.id, {
+        onSuccess: () => navigate('/projects'),
+      })
+    }
+  }
+
   return (
     <div className="space-y-8">
-      <div>
-        <Link to="/projects" className="text-sm text-indigo-400 hover:text-indigo-300">
-          ← Back to projects
-        </Link>
-        <h2 className="mt-2 text-2xl font-bold text-white">{project.name}</h2>
-        <p className="mt-1 text-slate-400">{project.description}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <Link to="/projects" className="text-sm text-indigo-400 hover:text-indigo-300">
+            ← Back to projects
+          </Link>
+          <h2 className="mt-2 text-2xl font-bold text-white">{project.name}</h2>
+          <p className="mt-1 text-slate-400">{project.description}</p>
+        </div>
+        <button
+          type="button"
+          disabled={deleteProject.isPending}
+          onClick={handleDeleteProject}
+          className="rounded-lg border border-rose-500/50 px-4 py-2 text-sm font-medium text-rose-300 hover:border-rose-400 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Delete project
+        </button>
       </div>
 
       {summary && (

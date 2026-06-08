@@ -1,13 +1,24 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useCreateProject, useProjects } from '../api/queries'
+import { useCreateProject, useDeleteProject, useProjects } from '../api/queries'
 
 export function ProjectsPage() {
   const { data: projects = [], isLoading, error } = useProjects()
   const createProject = useCreateProject()
+  const deleteProject = useDeleteProject()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [showForm, setShowForm] = useState(false)
+
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    const confirmed = window.confirm(
+      `Delete "${projectName}" and all of its tasks? This cannot be undone.`,
+    )
+
+    if (confirmed) {
+      deleteProject.mutate(projectId)
+    }
+  }
 
   if (isLoading) return <p className="text-slate-400">Loading projects…</p>
   if (error) return <p className="text-rose-400">Failed to load projects.</p>
@@ -71,20 +82,31 @@ export function ProjectsPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {projects.map((project) => (
-          <Link
+          <article
             key={project.id}
-            to={`/projects/${project.id}`}
-            className="block rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-indigo-500/50 hover:bg-slate-900"
+            className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 transition hover:border-indigo-500/50 hover:bg-slate-900"
           >
-            <h3 className="font-semibold text-white">{project.name}</h3>
-            <p className="mt-2 line-clamp-2 text-sm text-slate-400">
-              {project.description || 'No description'}
-            </p>
-            <div className="mt-4 flex gap-4 text-xs text-slate-500">
-              <span>{project.taskCount} tasks</span>
-              <span>{project.memberCount} members</span>
+            <Link to={`/projects/${project.id}`} className="block">
+              <h3 className="font-semibold text-white">{project.name}</h3>
+              <p className="mt-2 line-clamp-2 text-sm text-slate-400">
+                {project.description || 'No description'}
+              </p>
+            </Link>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-4 text-xs text-slate-500">
+                <span>{project.taskCount} tasks</span>
+                <span>{project.memberCount} members</span>
+              </div>
+              <button
+                type="button"
+                disabled={deleteProject.isPending}
+                onClick={() => handleDeleteProject(project.id, project.name)}
+                className="rounded-lg border border-rose-500/40 px-3 py-1.5 text-xs font-medium text-rose-300 hover:border-rose-400 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Delete
+              </button>
             </div>
-          </Link>
+          </article>
         ))}
       </div>
     </div>

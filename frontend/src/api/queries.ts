@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getData, patchData, postData, putData } from './client'
+import { deleteData, getData, patchData, postData, putData } from './client'
 import type {
   AuditLog,
   Comment,
@@ -120,6 +120,26 @@ function invalidateTaskQueries(queryClient: ReturnType<typeof useQueryClient>, p
   }
 }
 
+function replaceTask(tasks: Task[] | undefined, updatedTask: Task) {
+  if (!tasks) return tasks
+
+  return tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+}
+
+function updateTaskCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  updatedTask: Task,
+  projectId: string,
+) {
+  queryClient.setQueryData(queryKeys.task(updatedTask.id), updatedTask)
+  queryClient.setQueryData<Task[]>(queryKeys.tasks(projectId), (tasks) =>
+    replaceTask(tasks, updatedTask),
+  )
+  queryClient.setQueryData<Task[]>(queryKeys.tasks(), (tasks) =>
+    replaceTask(tasks, updatedTask),
+  )
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -128,6 +148,24 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+    },
+  })
+}
+
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) => deleteData<Record<string, never>>(`/api/projects/${projectId}`),
+    onSuccess: (_data, projectId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks() })
+      queryClient.removeQueries({ queryKey: queryKeys.project(projectId) })
+      queryClient.removeQueries({ queryKey: queryKeys.projectSummary(projectId) })
+      queryClient.removeQueries({ queryKey: queryKeys.projectMembers(projectId) })
+      queryClient.removeQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      queryClient.removeQueries({ queryKey: queryKeys.tasks(projectId) })
     },
   })
 }
@@ -154,8 +192,8 @@ export function useUpdateTaskStatus(taskId: string, projectId: string) {
   return useMutation({
     mutationFn: (status: string) =>
       patchData<Task>(`/api/tasks/${taskId}/status`, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
   })
@@ -166,8 +204,8 @@ export function useAssignTask(taskId: string, projectId: string) {
   return useMutation({
     mutationFn: (assigneeId: string | null) =>
       patchData<Task>(`/api/tasks/${taskId}/assign`, { assigneeId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
   })
@@ -182,8 +220,8 @@ export function useUpdateTask(taskId: string, projectId: string) {
       priority: string
       dueDateUtc?: string | null
     }) => putData<Task>(`/api/tasks/${taskId}`, body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
   })

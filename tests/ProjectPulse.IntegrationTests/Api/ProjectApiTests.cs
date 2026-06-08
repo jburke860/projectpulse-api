@@ -37,6 +37,66 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task DeleteProject_RemovesProjectAndTasks()
+    {
+        var createProjectResponse = await _client.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest($"Delete Test Project {Guid.NewGuid():N}", "Temporary project"));
+        createProjectResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var createdProject = await createProjectResponse.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
+        var projectId = createdProject!.Data!.Id;
+
+        var createTaskResponse = await _client.PostAsJsonAsync(
+            "/api/tasks",
+            new CreateTaskRequest(projectId, "Task to delete", null, "Medium", null));
+        createTaskResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var deleteResponse = await _client.DeleteAsync($"/api/projects/{projectId}");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getResponse = await _client.GetAsync($"/api/projects/{projectId}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var projectExists = await db.Projects.AnyAsync(p => p.Id == projectId);
+        var taskExists = await db.Tasks.AnyAsync(t => t.ProjectId == projectId);
+
+        projectExists.Should().BeFalse();
+        taskExists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UpdateTask_ChangesPriority()
+    {
+        var projectId = await GetSeededProjectId();
+        var createTaskResponse = await _client.PostAsJsonAsync(
+            "/api/tasks",
+            new CreateTaskRequest(projectId, $"Priority Test Task {Guid.NewGuid():N}", null, "Medium", null));
+        createTaskResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var createdTask = await createTaskResponse.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
+        var taskId = createdTask!.Data!.Id;
+
+        var updateResponse = await _client.PutAsJsonAsync(
+            $"/api/tasks/{taskId}",
+            new UpdateTaskRequest("Updated priority test task", "Updated description", "High", null));
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var updatedTask = await updateResponse.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
+        updatedTask!.Data!.Priority.Should().Be("High");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persistedTask = await db.Tasks.FirstAsync(t => t.Id == taskId);
+
+        persistedTask.Priority.Should().Be(Domain.Enums.TaskPriority.High);
+        persistedTask.Title.Should().Be("Updated priority test task");
+    }
+
+    [Fact]
     public async Task GetTasks_FilterByStatus_ReturnsResults()
     {
         var response = await _client.GetAsync("/api/tasks?status=Open");
@@ -72,8 +132,16 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
         var response = await _client.PatchAsJsonAsync($"/api/tasks/{task.Id}/status", new ChangeTaskStatusRequest("InProgress"));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
+        var body = await response.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
+        body!.Data!.Status.Should().Be("InProgress");
+
         var afterCount = await db.AuditLogs.CountAsync(a => a.TaskId == task.Id);
         afterCount.Should().BeGreaterThan(beforeCount);
+
+        using var assertScope = _factory.Services.CreateScope();
+        var assertDb = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persistedTask = await assertDb.Tasks.FirstAsync(t => t.Id == task.Id);
+        persistedTask.Status.Should().Be(Domain.Enums.TaskStatus.InProgress);
     }
 
     private async Task<Guid> GetSeededProjectId()

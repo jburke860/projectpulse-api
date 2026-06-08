@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { Task } from '../api/types'
 import {
   useAddComment,
@@ -12,6 +12,35 @@ import {
 
 const statuses = ['Open', 'InProgress', 'InReview', 'Done', 'Cancelled']
 const priorities = ['Low', 'Medium', 'High', 'Critical']
+const allowedStatusTransitions: Record<string, string[]> = {
+  Open: ['Open', 'InProgress', 'Cancelled'],
+  InProgress: ['InProgress', 'InReview', 'Open', 'Cancelled'],
+  InReview: ['InReview', 'Done', 'InProgress', 'Cancelled'],
+  Done: ['Done'],
+  Cancelled: ['Cancelled', 'Open'],
+}
+
+function getMutationErrorMessage(error: unknown) {
+  if (!error) return null
+
+  const response = (error as {
+    response?: { data?: { errors?: string[]; message?: string } }
+  }).response
+
+  if (response?.data?.errors?.length) {
+    return response.data.errors.join(' ')
+  }
+
+  if (response?.data?.message) {
+    return response.data.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'Something went wrong.'
+}
 
 interface TaskPanelProps {
   taskId: string
@@ -21,26 +50,6 @@ interface TaskPanelProps {
 
 export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
   const { data: task, isLoading } = useTask(taskId)
-  const { data: comments = [] } = useTaskComments(taskId)
-  const { data: users = [] } = useUsers()
-  const updateStatus = useUpdateTaskStatus(taskId, projectId)
-  const assignTask = useAssignTask(taskId, projectId)
-  const updateTask = useUpdateTask(taskId, projectId)
-  const addComment = useAddComment(taskId, projectId)
-
-  const [comment, setComment] = useState('')
-  const [edit, setEdit] = useState<Partial<Task>>({})
-
-  useEffect(() => {
-    if (task) {
-      setEdit({
-        title: task.title,
-        description: task.description ?? '',
-        priority: task.priority,
-        dueDateUtc: task.dueDateUtc?.slice(0, 10) ?? '',
-      })
-    }
-  }, [task])
 
   if (isLoading || !task) {
     return (
@@ -49,6 +58,33 @@ export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
       </aside>
     )
   }
+
+  return <LoadedTaskPanel key={task.id} task={task} taskId={taskId} projectId={projectId} onClose={onClose} />
+}
+
+interface LoadedTaskPanelProps extends TaskPanelProps {
+  task: Task
+}
+
+function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelProps) {
+  const { data: comments = [] } = useTaskComments(taskId)
+  const { data: users = [] } = useUsers()
+  const updateStatus = useUpdateTaskStatus(taskId, projectId)
+  const assignTask = useAssignTask(taskId, projectId)
+  const updateTask = useUpdateTask(taskId, projectId)
+  const addComment = useAddComment(taskId, projectId)
+
+  const [comment, setComment] = useState('')
+  const [edit, setEdit] = useState<Partial<Task>>({
+    title: task.title,
+    description: task.description ?? '',
+    priority: task.priority,
+    dueDateUtc: task.dueDateUtc?.slice(0, 10) ?? '',
+  })
+  const allowedStatuses = allowedStatusTransitions[task.status] ?? [task.status]
+  const mutationError = getMutationErrorMessage(
+    updateStatus.error ?? updateTask.error ?? assignTask.error ?? addComment.error,
+  )
 
   return (
     <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-slate-800 bg-slate-950 shadow-2xl">
@@ -64,6 +100,12 @@ export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
       </div>
 
       <div className="flex-1 space-y-6 overflow-y-auto p-4">
+        {mutationError && (
+          <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            {mutationError}
+          </p>
+        )}
+
         <div>
           <label className="text-xs text-slate-500">Title</label>
           <input
@@ -92,7 +134,7 @@ export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
               onChange={(e) => updateStatus.mutate(e.target.value)}
             >
               {statuses.map((s) => (
-                <option key={s} value={s}>
+                <option key={s} value={s} disabled={!allowedStatuses.includes(s)}>
                   {s}
                 </option>
               ))}
@@ -126,17 +168,21 @@ export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
 
         <button
           type="button"
-          className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+          disabled={updateTask.isPending}
+          className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           onClick={() =>
-            updateTask.mutate({
-              title: edit.title ?? task.title,
-              description: edit.description || undefined,
-              priority: edit.priority ?? task.priority,
-              dueDateUtc: edit.dueDateUtc ? `${edit.dueDateUtc}T00:00:00Z` : null,
-            })
+            updateTask.mutate(
+              {
+                title: edit.title ?? task.title,
+                description: edit.description || undefined,
+                priority: edit.priority ?? task.priority,
+                dueDateUtc: edit.dueDateUtc ? `${edit.dueDateUtc}T00:00:00Z` : null,
+              },
+              { onSuccess: onClose },
+            )
           }
         >
-          Save changes
+          {updateTask.isPending ? 'Saving…' : 'Save changes'}
         </button>
 
         <div>

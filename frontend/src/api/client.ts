@@ -18,6 +18,11 @@ export async function postData<T>(url: string, body: unknown): Promise<T> {
   return data.data
 }
 
+export async function deleteData<T>(url: string): Promise<T> {
+  const { data } = await api.delete<ApiResult<T>>(url)
+  return data.data
+}
+
 export async function patchData<T>(url: string, body: unknown): Promise<T> {
   const { data } = await api.patch<ApiResult<T>>(url, body)
   return data.data
