@@ -8,5 +8,6 @@ public enum AuditAction
     Assigned = 3,
     CommentAdded = 4,
     MemberAdded = 5,
-    Deleted = 6
+    Deleted = 6,
+    MemberRemoved = 7
 }

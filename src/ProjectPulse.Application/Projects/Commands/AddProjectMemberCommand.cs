@@ -53,8 +53,11 @@ public class AddProjectMemberCommandHandler : IRequestHandler<AddProjectMemberCo
             });
         }
 
-        var userExists = await _db.Users.AnyAsync(u => u.Id == command.Request.UserId, cancellationToken);
-        if (!userExists)
+        var displayName = await _db.Users
+            .Where(u => u.Id == command.Request.UserId)
+            .Select(u => u.DisplayName)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (displayName is null)
         {
             throw new NotFoundException($"User {command.Request.UserId} was not found.");
         }
@@ -72,7 +75,7 @@ public class AddProjectMemberCommandHandler : IRequestHandler<AddProjectMemberCo
         var role = Enum.Parse<ProjectRole>(command.Request.Role, true);
         _db.ProjectMembers.Add(new ProjectMember(command.ProjectId, command.Request.UserId, role));
         await _audit.LogAsync(command.ProjectId, null, AuditAction.MemberAdded, nameof(ProjectMember),
-            $"User {command.Request.UserId} added as {role}.", cancellationToken);
+            $"{displayName} added as {role}.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

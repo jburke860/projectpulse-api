@@ -21,6 +21,7 @@ public class CreateTaskCommandValidator : AbstractValidator<CreateTaskCommand>
         RuleFor(x => x.Request.ProjectId).NotEmpty();
         RuleFor(x => x.Request.Title).NotEmpty().MaximumLength(300);
         RuleFor(x => x.Request.Priority).NotEmpty().Must(p => Enum.TryParse<TaskPriority>(p, true, out _));
+        RuleFor(x => x.Request.AssigneeId).NotEmpty();
     }
 }
 
@@ -40,14 +41,16 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
     public async Task<TaskDto> Handle(CreateTaskCommand command, CancellationToken cancellationToken)
     {
         await EnsureCanManageTasks(command.Request.ProjectId, cancellationToken);
+        var assigneeName = await GetProjectMemberDisplayName(command.Request.ProjectId, command.Request.AssigneeId, cancellationToken);
 
         var priority = Enum.Parse<TaskPriority>(command.Request.Priority, true);
         var task = new TaskItem(command.Request.ProjectId, command.Request.Title, command.Request.Description, priority, command.Request.DueDateUtc);
+        task.Assign(command.Request.AssigneeId);
         _db.Tasks.Add(task);
         await _audit.LogAsync(task.ProjectId, task.Id, AuditAction.Created, nameof(TaskItem), $"Task '{task.Title}' created.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Map(task, null);
+        return Map(task, assigneeName);
     }
 
     private async Task EnsureCanManageTasks(Guid projectId, CancellationToken cancellationToken)
@@ -64,6 +67,24 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
                 ["authorization"] = ["You are not allowed to manage tasks in this project."]
             });
         }
+    }
+
+    private async Task<string> GetProjectMemberDisplayName(Guid projectId, Guid assigneeId, CancellationToken cancellationToken)
+    {
+        var assigneeName = await _db.ProjectMembers
+            .Where(m => m.ProjectId == projectId && m.UserId == assigneeId)
+            .Select(m => m.User.DisplayName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (assigneeName is null)
+        {
+            throw new Common.Exceptions.ValidationException(new Dictionary<string, string[]>
+            {
+                ["assigneeId"] = ["Assignee must be a project member."]
+            });
+        }
+
+        return assigneeName;
     }
 
     internal static TaskDto Map(TaskItem task, string? assigneeName) =>

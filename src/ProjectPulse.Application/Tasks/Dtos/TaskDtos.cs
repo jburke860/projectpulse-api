@@ -17,6 +17,7 @@ public record CreateTaskRequest(
     string Title,
     string? Description,
     string Priority,
+    Guid AssigneeId,
     DateTime? DueDateUtc);
 
 public record UpdateTaskRequest(

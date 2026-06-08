@@ -35,11 +35,14 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, TaskD
             .FirstOrDefaultAsync(cancellationToken);
         ProjectMembershipRules.EnsureCanManageTasks(role);
 
+        string? assigneeName = null;
         if (command.Request.AssigneeId.HasValue)
         {
-            var isMember = await _db.ProjectMembers
-                .AnyAsync(m => m.ProjectId == task.ProjectId && m.UserId == command.Request.AssigneeId, cancellationToken);
-            if (!isMember)
+            assigneeName = await _db.ProjectMembers
+                .Where(m => m.ProjectId == task.ProjectId && m.UserId == command.Request.AssigneeId)
+                .Select(m => m.User.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (assigneeName is null)
             {
                 throw new Common.Exceptions.ValidationException(new Dictionary<string, string[]>
                 {
@@ -50,13 +53,9 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, TaskD
 
         task.Assign(command.Request.AssigneeId);
         await _audit.LogAsync(task.ProjectId, task.Id, AuditAction.Assigned, nameof(Domain.Entities.TaskItem),
-            command.Request.AssigneeId.HasValue ? $"Assigned to {command.Request.AssigneeId}." : "Unassigned.", cancellationToken);
+            assigneeName is not null ? $"Assigned to {assigneeName}." : "Unassigned.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        var assignee = command.Request.AssigneeId.HasValue
-            ? await _db.Users.Where(u => u.Id == command.Request.AssigneeId).Select(u => u.DisplayName).FirstAsync(cancellationToken)
-            : null;
-
-        return CreateTaskCommandHandler.Map(task, assignee);
+        return CreateTaskCommandHandler.Map(task, assigneeName);
     }
 }

@@ -49,7 +49,7 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
 
         var createTaskResponse = await _client.PostAsJsonAsync(
             "/api/tasks",
-            new CreateTaskRequest(projectId, "Task to delete", null, "Medium", null));
+            new CreateTaskRequest(projectId, "Task to delete", null, "Medium", SeedData.DemoAdminUserId, null));
         createTaskResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var deleteResponse = await _client.DeleteAsync($"/api/projects/{projectId}");
@@ -69,12 +69,64 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task AddAndRemoveProjectMember_UpdatesMembershipAndUnassignsTasks()
+    {
+        var createProjectResponse = await _client.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest($"Member Test Project {Guid.NewGuid():N}", "Temporary project"));
+        createProjectResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var createdProject = await createProjectResponse.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
+        var projectId = createdProject!.Data!.Id;
+
+        Guid userId;
+        string displayName;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Id != SeedData.DemoAdminUserId);
+            userId = user.Id;
+            displayName = user.DisplayName;
+        }
+
+        var addResponse = await _client.PostAsJsonAsync(
+            $"/api/projects/{projectId}/members",
+            new AddProjectMemberRequest(userId, "Member"));
+        addResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var createTaskResponse = await _client.PostAsJsonAsync(
+            "/api/tasks",
+            new CreateTaskRequest(projectId, "Assigned member task", null, "Medium", userId, null));
+        createTaskResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var createdTask = await createTaskResponse.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
+        var taskId = createdTask!.Data!.Id;
+
+        var removeResponse = await _client.DeleteAsync($"/api/projects/{projectId}/members/{userId}");
+        removeResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var assertScope = _factory.Services.CreateScope();
+        var assertDb = assertScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var memberExists = await assertDb.ProjectMembers.AnyAsync(m => m.ProjectId == projectId && m.UserId == userId);
+        var task = await assertDb.Tasks.FirstAsync(t => t.Id == taskId);
+        var removalLogged = await assertDb.AuditLogs.AnyAsync(a =>
+            a.ProjectId == projectId &&
+            a.Action == Domain.Enums.AuditAction.MemberRemoved &&
+            a.Message.Contains(displayName));
+
+        memberExists.Should().BeFalse();
+        task.AssigneeId.Should().BeNull();
+        removalLogged.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task UpdateTask_ChangesPriority()
     {
         var projectId = await GetSeededProjectId();
         var createTaskResponse = await _client.PostAsJsonAsync(
             "/api/tasks",
-            new CreateTaskRequest(projectId, $"Priority Test Task {Guid.NewGuid():N}", null, "Medium", null));
+            new CreateTaskRequest(projectId, $"Priority Test Task {Guid.NewGuid():N}", null, "Medium", SeedData.DemoAdminUserId, null));
         createTaskResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var createdTask = await createTaskResponse.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
@@ -116,6 +168,7 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
             "Invalid task",
             null,
             "High",
+            SeedData.DemoAdminUserId,
             DateTime.UtcNow.AddDays(-2)));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);

@@ -170,6 +170,35 @@ export function useDeleteProject() {
   })
 }
 
+function invalidateProjectMemberQueries(queryClient: ReturnType<typeof useQueryClient>, projectId: string) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+  queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) })
+  queryClient.invalidateQueries({ queryKey: queryKeys.tasks() })
+}
+
+export function useAddProjectMember(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { userId: string; role: string }) =>
+      postData<Record<string, never>>(`/api/projects/${projectId}/members`, body),
+    onSuccess: () => invalidateProjectMemberQueries(queryClient, projectId),
+  })
+}
+
+export function useRemoveProjectMember(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) =>
+      deleteData<Record<string, never>>(`/api/projects/${projectId}/members/${userId}`),
+    onSuccess: () => invalidateProjectMemberQueries(queryClient, projectId),
+  })
+}
+
 export function useCreateTask(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -177,6 +206,7 @@ export function useCreateTask(projectId: string) {
       title: string
       description?: string
       priority: string
+      assigneeId: string
       dueDateUtc?: string
     }) =>
       postData<Task>('/api/tasks', {

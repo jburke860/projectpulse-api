@@ -50,6 +50,13 @@ public class ProjectsController : ControllerBase
         return Ok(ApiResult<object>.Ok(new { }, "Member added."));
     }
 
+    [HttpDelete("{id:guid}/members/{userId:guid}")]
+    public async Task<ActionResult<ApiResult<object>>> RemoveMember(Guid id, Guid userId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new RemoveProjectMemberCommand(id, userId), cancellationToken);
+        return Ok(ApiResult<object>.Ok(new { }, "Member removed."));
+    }
+
     [HttpGet("{id:guid}/members")]
     public async Task<IActionResult> GetMembers(Guid id, CancellationToken cancellationToken)
     {

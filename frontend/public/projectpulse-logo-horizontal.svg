@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 88" role="img" aria-label="ProjectPulse logo">
+  <defs>
+    <linearGradient id="ppWarmIcon" x1="8" y1="10" x2="78" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b31318"/>
+      <stop offset="0.48" stop-color="#f0441f"/>
+      <stop offset="1" stop-color="#ff9f0a"/>
+    </linearGradient>
+    <linearGradient id="ppPulse" x1="28" y1="38" x2="83" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff7a00"/>
+      <stop offset="1" stop-color="#ffd166"/>
+    </linearGradient>
+    <linearGradient id="ppWordPulse" x1="260" y1="0" x2="426" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4d1f"/>
+      <stop offset="0.55" stop-color="#ff7a00"/>
+      <stop offset="1" stop-color="#ffb000"/>
+    </linearGradient>
+    <filter id="ppSoftShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2b0503" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- transparent horizontal mark for dark nav/header use -->
+  <g filter="url(#ppSoftShadow)">
+    <path d="M18 76V12h31.8C63.7 12 73 20.6 73 33.4S63.7 54.8 49.8 54.8H34.9V76H18Zm16.9-35.2h13.5c4.6 0 7.6-2.75 7.6-7.05s-3-7.05-7.6-7.05H34.9v14.1Z" fill="url(#ppWarmIcon)"/>
+    <path d="M8 18c0-5.5 4.5-10 10-10h28.5v7H18c-1.65 0-3 1.35-3 3v50c0 1.65 1.35 3 3 3h15v7H18C12.5 78 8 73.5 8 68V18Z" fill="url(#ppWarmIcon)"/>
+    <path d="M27 39h13.6l3.8-10.9 6.8 21.4 3.7-10.5H83" fill="none" stroke="url(#ppPulse)" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="20" y="57" width="5.5" height="11" rx="1.5" fill="#ff4a2c"/>
+    <rect x="29" y="51" width="5.5" height="17" rx="1.5" fill="#ff7a00"/>
+    <rect x="38" y="44" width="5.5" height="24" rx="1.5" fill="#ffb000"/>
+    <circle cx="21.5" cy="25" r="3.4" fill="#ff3d2e"/>
+    <circle cx="21.5" cy="37" r="3.4" fill="#ff7a00"/>
+    <path d="M29 25h18M29 37h15" stroke="#ffd1bd" stroke-width="3.2" stroke-linecap="round" opacity="0.95"/>
+  </g>
+
+  <text x="96" y="56" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="41" font-weight="800" letter-spacing="-1.8">
+    <tspan fill="#fff4ed">Project</tspan><tspan fill="url(#ppWordPulse)">Pulse</tspan>
+  </text>
+</svg>

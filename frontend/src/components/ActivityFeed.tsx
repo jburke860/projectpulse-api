@@ -16,7 +16,7 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ items, emptyMessage = 'No activity yet.', compact }: ActivityFeedProps) {
   if (!items.length) {
-    return <p className="text-sm text-slate-500">{emptyMessage}</p>
+    return <p className="text-sm text-[#c38f7f]">{emptyMessage}</p>
   }
 
   return (
@@ -24,16 +24,16 @@ export function ActivityFeed({ items, emptyMessage = 'No activity yet.', compact
       {items.map((item) => (
         <li
           key={item.id}
-          className={`rounded-lg border border-slate-800 bg-slate-900/50 ${compact ? 'p-3' : 'p-4'}`}
+          className={`rounded-lg border border-[#5a1914] bg-[#230907]/70 shadow-[0_10px_24px_rgba(0,0,0,0.2)] ${compact ? 'p-3' : 'p-4'}`}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-indigo-300">
+            <span className="rounded-full border border-[#ff7b22]/30 bg-[#ff7b22]/12 px-2 py-0.5 text-xs font-medium text-[#ffc29c]">
               {actionLabel(item.action)}
             </span>
-            <span className="text-xs text-slate-500">{formatTime(item.createdAtUtc)}</span>
+            <span className="text-xs text-[#c58b7a]">{formatTime(item.createdAtUtc)}</span>
           </div>
-          <p className="mt-2 text-sm text-slate-200">{item.message}</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-2 text-sm text-[#fff0e8]">{item.message}</p>
+          <p className="mt-1 text-xs text-[#c58b7a]">
             {item.actorName} · {item.entityType}
           </p>
         </li>
