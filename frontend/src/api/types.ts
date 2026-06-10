@@ -5,6 +5,12 @@ export interface ApiResult<T> {
   errors?: string[]
 }
 
+export interface DemoSession {
+  sessionId: string
+  userId: string
+  expiresAtUtc: string
+}
+
 export interface Project {
   id: string
   name: string

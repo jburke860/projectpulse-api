@@ -13,6 +13,7 @@ The backend is the core of the project. The frontend is a polished demo client t
 * Domain rules for task status transitions and project membership permissions
 * Required task assignment to a project member when creating tasks
 * Project member management, including add/remove member workflows
+* Public portfolio demo sessions with isolated seeded workspaces
 * Last-admin protection when removing project members
 * Automatic task unassignment when a removed member had assigned tasks
 * Audit logging for projects, tasks, comments, assignments, and membership changes
@@ -137,15 +138,17 @@ The Vite dev server proxies `/api` to `http://localhost:5000`.
 ## Demo Flow
 
 1. Start the API and frontend.
-2. Open the dashboard and review workspace metrics.
-3. Open the Projects page and create a project.
-4. Open a project detail page and add project members.
-5. Create a task by entering a title, selecting an assignee, and choosing a priority.
-6. Open a task to update status, priority, due date, assignee, and comments.
-7. Remove a project member and confirm their assigned project tasks become unassigned.
-8. Open Activity to review audit entries for tasks, assignments, and membership changes.
-9. Open Swagger to inspect and test the raw API endpoints.
-10. Run the test suite.
+2. Click **Continue as Demo User** to create an isolated seeded workspace for this browser.
+3. Review dashboard metrics.
+4. Open the Projects page and create a project.
+5. Open a project detail page and add project members.
+6. Create a task by entering a title, selecting an assignee, and choosing a priority.
+7. Open a task to update status, priority, due date, assignee, and comments.
+8. Remove a project member and confirm their assigned project tasks become unassigned.
+9. Open Activity to review audit entries for tasks, assignments, and membership changes.
+10. Open Swagger to inspect and test the raw API endpoints.
+11. Use **Reset demo** to restore the current browser session to seeded data.
+12. Run the test suite.
 
 ## API Highlights
 
@@ -188,7 +191,29 @@ curl http://localhost:5000/api/projects/{projectId}/activity
 
 ## Authorization Note
 
-This demo uses a development current-user service with a seeded admin user for local workflows. Project membership rules are still enforced in the application layer: only admins can manage members, and only admins or members can manage tasks. JWT authentication and role-based authorization are planned for a future version.
+This demo uses a lightweight portfolio-demo session instead of full user accounts. The frontend stores a generated demo session ID in browser local storage and sends it as `X-ProjectPulse-Demo-Session`; the API scopes projects, tasks, users, and activity to that session's seeded workspace. Without the header, Swagger/local API calls still use the seeded admin user. Project membership rules are still enforced in the application layer: only admins can manage members, and only admins or members can manage tasks. JWT authentication and role-based authorization are planned for a future version.
+
+## Hosted Demo Deployment
+
+Recommended first deploy:
+
+* Frontend: Vercel, using the `frontend/` directory as the project root.
+* API: Render or another Docker host, using this repository's `Dockerfile`.
+* Database: SQLite with a persistent disk mounted at `/data`.
+
+Backend environment variables:
+
+```bash
+ConnectionStrings__DefaultConnection=Data Source=/data/projectpulse.db
+Cors__AllowedOrigins__0=https://your-projectpulse-demo.vercel.app
+```
+
+Frontend environment variables:
+
+```bash
+VITE_API_BASE_URL=https://your-projectpulse-api.onrender.com
+VITE_API_DOCS_URL=https://your-projectpulse-api.onrender.com/swagger
+```
 
 ## Tests
 

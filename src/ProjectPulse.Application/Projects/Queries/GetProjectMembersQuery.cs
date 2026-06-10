@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Projects.Dtos;
 
@@ -10,11 +11,17 @@ public record GetProjectMembersQuery(Guid ProjectId) : IRequest<IReadOnlyList<Pr
 public class GetProjectMembersQueryHandler : IRequestHandler<GetProjectMembersQuery, IReadOnlyList<ProjectMemberDto>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetProjectMembersQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProjectMembersQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<IReadOnlyList<ProjectMemberDto>> Handle(GetProjectMembersQuery query, CancellationToken cancellationToken) =>
         await _db.ProjectMembers.AsNoTracking()
+            .VisibleTo(_currentUser.UserId)
             .Where(m => m.ProjectId == query.ProjectId)
             .Select(m => new ProjectMemberDto(
                 m.UserId,

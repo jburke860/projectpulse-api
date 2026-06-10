@@ -1,5 +1,7 @@
 using ProjectPulse.Api.Middleware;
+using ProjectPulse.Api.Services;
 using ProjectPulse.Application;
+using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Infrastructure;
 using ProjectPulse.Infrastructure.Persistence;
 
@@ -7,11 +9,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, HeaderCurrentUserService>();
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? ["http://localhost:5173"];
+
     options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod());
 });

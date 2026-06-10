@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Exceptions;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Projects.Dtos;
 
@@ -11,14 +12,20 @@ public record GetProjectByIdQuery(Guid Id) : IRequest<ProjectDto>;
 public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, ProjectDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetProjectByIdQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProjectByIdQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<ProjectDto> Handle(GetProjectByIdQuery query, CancellationToken cancellationToken)
     {
         var project = await _db.Projects
             .AsNoTracking()
             .Where(p => p.Id == query.Id)
+            .VisibleTo(_currentUser.UserId)
             .Select(p => new ProjectDto(
                 p.Id,
                 p.Name,

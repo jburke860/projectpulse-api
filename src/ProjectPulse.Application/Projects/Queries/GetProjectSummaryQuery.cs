@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Exceptions;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Projects.Dtos;
 using TaskStatus = ProjectPulse.Domain.Enums.TaskStatus;
@@ -12,18 +13,26 @@ public record GetProjectSummaryQuery(Guid ProjectId) : IRequest<ProjectSummaryDt
 public class GetProjectSummaryQueryHandler : IRequestHandler<GetProjectSummaryQuery, ProjectSummaryDto>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetProjectSummaryQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProjectSummaryQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<ProjectSummaryDto> Handle(GetProjectSummaryQuery query, CancellationToken cancellationToken)
     {
         var project = await _db.Projects.AsNoTracking()
             .Where(p => p.Id == query.ProjectId)
+            .VisibleTo(_currentUser.UserId)
             .Select(p => new { p.Id, p.Name })
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Project {query.ProjectId} was not found.");
 
-        var tasks = _db.Tasks.AsNoTracking().Where(t => t.ProjectId == query.ProjectId);
+        var tasks = _db.Tasks.AsNoTracking()
+            .VisibleTo(_currentUser.UserId)
+            .Where(t => t.ProjectId == query.ProjectId);
         var now = DateTime.UtcNow.Date;
 
         return new ProjectSummaryDto(

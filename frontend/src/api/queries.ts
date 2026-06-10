@@ -4,6 +4,7 @@ import type {
   AuditLog,
   Comment,
   Dashboard,
+  DemoSession,
   Project,
   ProjectMember,
   ProjectSummary,
@@ -23,6 +24,14 @@ export const queryKeys = {
   taskComments: (id: string) => ['taskComments', id] as const,
   activity: ['activity'] as const,
   users: ['users'] as const,
+}
+
+export function createDemoSession() {
+  return postData<DemoSession>('/api/demo/sessions', {})
+}
+
+export function resetDemoSession(sessionId: string) {
+  return postData<DemoSession>(`/api/demo/sessions/${sessionId}/reset`, {})
 }
 
 export function useDashboard() {

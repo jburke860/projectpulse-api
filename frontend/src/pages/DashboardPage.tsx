@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom'
 import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { StatCard } from '../components/StatCard'
+import { useDemoSession } from '../demo/DemoSessionContext'
 
 export function DashboardPage() {
   const { data, isLoading, error } = useDashboard()
+  const { apiDocsUrl } = useDemoSession()
 
   if (isLoading) return <p className="text-[#d8a290]">Loading dashboard…</p>
-  if (error) return <p className="text-[#ff8d7d]">Could not load dashboard. Is the API running on port 5000?</p>
+  if (error) return <p className="text-[#ff8d7d]">Could not load dashboard. Check the API deployment URL.</p>
   if (!data) return null
 
   return (
@@ -41,14 +43,24 @@ export function DashboardPage() {
             <li>1. Browse seeded projects on the Projects page.</li>
             <li>2. Open a project to view tasks and members.</li>
             <li>3. Click a task to assign, change status, or comment.</li>
-            <li>4. Use Swagger at localhost:5000/swagger for raw API exploration.</li>
+            <li>4. Open Swagger for raw API exploration.</li>
           </ul>
-          <Link
-            to="/projects"
-            className="mt-6 inline-block rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
-          >
-            View projects
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              to="/projects"
+              className="inline-block rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+            >
+              View projects
+            </Link>
+            <a
+              href={apiDocsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+            >
+              API Docs
+            </a>
+          </div>
         </section>
       </div>
     </div>

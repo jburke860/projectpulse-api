@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ProjectPulse.Application.Common.Constants;
 using ProjectPulse.Domain.Entities;
 using ProjectPulse.Domain.Enums;
 using TaskItem = ProjectPulse.Domain.Entities.TaskItem;
@@ -11,6 +12,28 @@ public static class SeedData
 {
     public static readonly Guid DemoAdminUserId = Guid.Parse("11111111-1111-1111-1111-111111111101");
 
+    private static readonly (string Email, string DisplayName)[] LocalUsers =
+    [
+        ("alex.morgan@example.com", "Alex Morgan"),
+        ("sam.lee@example.com", "Sam Lee"),
+        ("jordan.kim@example.com", "Jordan Kim"),
+        ("taylor.nguyen@example.com", "Taylor Nguyen"),
+        ("casey.wright@example.com", "Casey Wright"),
+        ("riley.chen@example.com", "Riley Chen"),
+        ("morgan.patel@example.com", "Morgan Patel")
+    ];
+
+    private static readonly (string Key, string DisplayName)[] DemoUsers =
+    [
+        ("alex", "Alex Morgan"),
+        ("sam", "Sam Lee"),
+        ("jordan", "Jordan Kim"),
+        ("taylor", "Taylor Nguyen"),
+        ("casey", "Casey Wright"),
+        ("riley", "Riley Chen"),
+        ("morgan", "Morgan Patel")
+    ];
+
     public static async Task InitializeAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
     {
         await db.Database.MigrateAsync(cancellationToken);
@@ -19,18 +42,32 @@ public static class SeedData
             return;
         }
 
-        var users = new[]
+        var users = new List<User> { new(DemoAdminUserId, "jeremy.burke024@gmail.com", "Jeremy Burke") };
+        users.AddRange(LocalUsers.Select(user => new User(user.Email, user.DisplayName)));
+
+        await SeedWorkspaceAsync(db, users, DemoAdminUserId, cancellationToken);
+    }
+
+    public static async Task SeedDemoWorkspaceAsync(ApplicationDbContext db, Guid sessionUserId, CancellationToken cancellationToken = default)
+    {
+        var emailPrefix = DemoSessionConstants.EmailSessionPrefix(sessionUserId);
+        var users = new List<User>
         {
-            new User(DemoAdminUserId, "jeremy.burke024@gmail.com", "Jeremy Burke"),
-            new User("alex.morgan@example.com", "Alex Morgan"),
-            new User("sam.lee@example.com", "Sam Lee"),
-            new User("jordan.kim@example.com", "Jordan Kim"),
-            new User("taylor.nguyen@example.com", "Taylor Nguyen"),
-            new User("casey.wright@example.com", "Casey Wright"),
-            new User("riley.chen@example.com", "Riley Chen"),
-            new User("morgan.patel@example.com", "Morgan Patel")
+            new(sessionUserId, $"{emailPrefix}admin@{DemoSessionConstants.EmailDomain}", "Demo User")
         };
 
+        users.AddRange(DemoUsers.Select(user =>
+            new User($"{emailPrefix}{user.Key}@{DemoSessionConstants.EmailDomain}", user.DisplayName)));
+
+        await SeedWorkspaceAsync(db, users, sessionUserId, cancellationToken);
+    }
+
+    private static async Task SeedWorkspaceAsync(
+        ApplicationDbContext db,
+        IReadOnlyList<User> users,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
         db.Users.AddRange(users);
 
         var projects = new[]
@@ -45,9 +82,9 @@ public static class SeedData
 
         foreach (var (project, index) in projects.Select((p, i) => (p, i)))
         {
-            db.ProjectMembers.Add(new ProjectMember(project.Id, DemoAdminUserId, ProjectRole.Admin));
-            db.ProjectMembers.Add(new ProjectMember(project.Id, users[(index + 1) % users.Length].Id, ProjectRole.Member));
-            db.ProjectMembers.Add(new ProjectMember(project.Id, users[(index + 2) % users.Length].Id, ProjectRole.Viewer));
+            db.ProjectMembers.Add(new ProjectMember(project.Id, adminUserId, ProjectRole.Admin));
+            db.ProjectMembers.Add(new ProjectMember(project.Id, users[(index + 1) % users.Count].Id, ProjectRole.Member));
+            db.ProjectMembers.Add(new ProjectMember(project.Id, users[(index + 2) % users.Count].Id, ProjectRole.Viewer));
         }
 
         var labels = new List<Label>();
@@ -80,7 +117,7 @@ public static class SeedData
             ApplyDemoStatus(task, statuses[i % statuses.Length]);
             if (i % 3 == 0)
             {
-                task.Assign(users[i % users.Length].Id);
+                task.Assign(users[i % users.Count].Id);
             }
 
             tasks.Add(task);
@@ -91,10 +128,10 @@ public static class SeedData
 
         foreach (var (task, index) in tasks.Select((t, i) => (t, i)))
         {
-            db.Comments.Add(new Comment(task.Id, users[index % users.Length].Id, "Seeded comment for demo activity feed."));
+            db.Comments.Add(new Comment(task.Id, users[index % users.Count].Id, "Seeded comment for demo activity feed."));
             db.TaskLabels.Add(new TaskLabel(task.Id, labels[index % labels.Count].Id));
             db.Attachments.Add(new Attachment(task.Id, $"spec-{index + 1}.pdf", "application/pdf", 1024 * (index + 1), $"demo/tasks/{task.Id}/spec-{index + 1}.pdf"));
-            db.AuditLogs.Add(new AuditLog(task.ProjectId, task.Id, DemoAdminUserId, AuditAction.Created, nameof(TaskItem), $"Seeded task '{task.Title}'."));
+            db.AuditLogs.Add(new AuditLog(task.ProjectId, task.Id, adminUserId, AuditAction.Created, nameof(TaskItem), $"Seeded task '{task.Title}'."));
         }
 
         await db.SaveChangesAsync(cancellationToken);

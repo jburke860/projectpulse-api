@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Audit.Dtos;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 
 namespace ProjectPulse.Application.Audit.Queries;
@@ -10,11 +11,17 @@ public record GetProjectActivityQuery(Guid ProjectId) : IRequest<IReadOnlyList<A
 public class GetProjectActivityQueryHandler : IRequestHandler<GetProjectActivityQuery, IReadOnlyList<AuditLogDto>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetProjectActivityQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetProjectActivityQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<IReadOnlyList<AuditLogDto>> Handle(GetProjectActivityQuery query, CancellationToken cancellationToken) =>
         await _db.AuditLogs.AsNoTracking()
+            .VisibleTo(_currentUser.UserId)
             .Where(a => a.ProjectId == query.ProjectId)
             .OrderByDescending(a => a.CreatedAtUtc)
             .Select(a => new AuditLogDto(

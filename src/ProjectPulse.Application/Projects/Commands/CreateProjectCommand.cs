@@ -34,6 +34,15 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
 
     public async Task<ProjectDto> Handle(CreateProjectCommand command, CancellationToken cancellationToken)
     {
+        var currentUserExists = await _db.Users.AnyAsync(u => u.Id == _currentUser.UserId, cancellationToken);
+        if (!currentUserExists)
+        {
+            throw new Common.Exceptions.ValidationException(new Dictionary<string, string[]>
+            {
+                ["demoSession"] = ["Start a demo session before creating projects."]
+            });
+        }
+
         var project = new Project(command.Request.Name, command.Request.Description);
         _db.Projects.Add(project);
         _db.ProjectMembers.Add(new ProjectMember(project.Id, _currentUser.UserId, ProjectRole.Admin));

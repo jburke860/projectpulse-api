@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Exceptions;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Projects.Dtos;
 using ProjectPulse.Domain.Entities;
@@ -54,6 +55,7 @@ public class AddProjectMemberCommandHandler : IRequestHandler<AddProjectMemberCo
         }
 
         var displayName = await _db.Users
+            .VisibleTo(_currentUser.UserId)
             .Where(u => u.Id == command.Request.UserId)
             .Select(u => u.DisplayName)
             .FirstOrDefaultAsync(cancellationToken);

@@ -5,6 +5,7 @@ import { ActivityPage } from './pages/ActivityPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
+import { DemoSessionProvider } from './demo/DemoSessionProvider'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,16 +16,18 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:id" element={<ProjectDetailPage />} />
-            <Route path="activity" element={<ActivityPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <DemoSessionProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:id" element={<ProjectDetailPage />} />
+              <Route path="activity" element={<ActivityPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </DemoSessionProvider>
     </QueryClientProvider>
   )
 }

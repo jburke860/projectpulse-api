@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Tasks.Dtos;
 using ProjectPulse.Application.Tasks.Commands;
@@ -19,12 +20,19 @@ public record GetTasksQuery(
 public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList<TaskDto>>
 {
     private readonly IApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetTasksQueryHandler(IApplicationDbContext db) => _db = db;
+    public GetTasksQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<IReadOnlyList<TaskDto>> Handle(GetTasksQuery query, CancellationToken cancellationToken)
     {
-        var tasks = _db.Tasks.AsNoTracking().Include(t => t.Assignee).AsQueryable();
+        var tasks = _db.Tasks.AsNoTracking()
+            .Include(t => t.Assignee)
+            .VisibleTo(_currentUser.UserId);
 
         if (query.ProjectId.HasValue)
         {

@@ -4,8 +4,10 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ProjectPulse.Application.Common.Models;
+using ProjectPulse.Application.Demo.Dtos;
 using ProjectPulse.Application.Projects.Dtos;
 using ProjectPulse.Application.Tasks.Dtos;
+using ProjectPulse.Application.Common.Constants;
 using ProjectPulse.Infrastructure.Persistence;
 
 namespace ProjectPulse.IntegrationTests.Api;
@@ -34,6 +36,55 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
         var body = await response.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
         body!.Success.Should().BeTrue();
         body.Data!.Name.Should().Be("Integration Test Project");
+    }
+
+    [Fact]
+    public async Task DemoSessions_IsolateProjectLists()
+    {
+        var sessionA = await CreateDemoSession();
+        var sessionB = await CreateDemoSession();
+        var projectName = $"Session A Project {Guid.NewGuid():N}";
+
+        var createResponse = await SendWithDemoSessionAsync(
+            HttpMethod.Post,
+            "/api/projects",
+            sessionA.SessionId,
+            new CreateProjectRequest(projectName, "Created in one demo session"));
+        createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var sessionAProjectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", sessionA.SessionId);
+        sessionAProjectsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var sessionAProjects = await sessionAProjectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
+        sessionAProjects!.Data.Should().Contain(p => p.Name == projectName);
+
+        var sessionBProjectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", sessionB.SessionId);
+        sessionBProjectsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var sessionBProjects = await sessionBProjectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
+        sessionBProjects!.Data.Should().NotContain(p => p.Name == projectName);
+    }
+
+    [Fact]
+    public async Task ResetDemoSession_RestoresSeededWorkspace()
+    {
+        var session = await CreateDemoSession();
+
+        var createResponse = await SendWithDemoSessionAsync(
+            HttpMethod.Post,
+            "/api/projects",
+            session.SessionId,
+            new CreateProjectRequest($"Reset Test Project {Guid.NewGuid():N}", null));
+        createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var resetResponse = await _client.PostAsync($"/api/demo/sessions/{session.SessionId}/reset", null);
+        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var projectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", session.SessionId);
+        var projects = await projectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
+
+        projects!.Data.Should().HaveCount(3);
+        projects.Data.Should().Contain(p => p.Name == "ProjectPulse Platform");
+        projects.Data.Should().Contain(p => p.Name == "Customer Onboarding");
+        projects.Data.Should().Contain(p => p.Name == "Mobile Companion");
     }
 
     [Fact]
@@ -84,7 +135,10 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var user = await db.Users.FirstAsync(u => u.Id != SeedData.DemoAdminUserId);
+            var user = await db.ProjectMembers
+                .Where(m => m.UserId != SeedData.DemoAdminUserId && m.Project.Members.Any(pm => pm.UserId == SeedData.DemoAdminUserId))
+                .Select(m => m.User)
+                .FirstAsync();
             userId = user.Id;
             displayName = user.DisplayName;
         }
@@ -179,7 +233,9 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var task = await db.Tasks.FirstAsync(t => t.Status == Domain.Enums.TaskStatus.Open);
+        var task = await db.Tasks.FirstAsync(t =>
+            t.Status == Domain.Enums.TaskStatus.Open &&
+            t.Project.Members.Any(m => m.UserId == SeedData.DemoAdminUserId));
         var beforeCount = await db.AuditLogs.CountAsync(a => a.TaskId == task.Id);
 
         var response = await _client.PatchAsJsonAsync($"/api/tasks/{task.Id}/status", new ChangeTaskStatusRequest("InProgress"));
@@ -201,6 +257,36 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        return await db.Projects.Select(p => p.Id).FirstAsync();
+        return await db.ProjectMembers
+            .Where(m => m.UserId == SeedData.DemoAdminUserId)
+            .Select(m => m.ProjectId)
+            .FirstAsync();
+    }
+
+    private async Task<DemoSessionDto> CreateDemoSession()
+    {
+        var response = await _client.PostAsync("/api/demo/sessions", null);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiResult<DemoSessionDto>>();
+        body!.Data.Should().NotBeNull();
+        return body.Data!;
+    }
+
+    private Task<HttpResponseMessage> SendWithDemoSessionAsync(
+        HttpMethod method,
+        string url,
+        string sessionId,
+        object? body = null)
+    {
+        var request = new HttpRequestMessage(method, url);
+        request.Headers.Add(DemoSessionConstants.HeaderName, sessionId);
+
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        return _client.SendAsync(request);
     }
 }

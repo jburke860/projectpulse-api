@@ -19,7 +19,7 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IAuditService, AuditService>();
-        services.AddSingleton<ICurrentUserService, DevCurrentUserService>();
+        services.AddScoped<IDemoSessionService, DemoSessionService>();
 
         return services;
     }
