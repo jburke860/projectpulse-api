@@ -3,6 +3,7 @@ import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { StatCard } from '../components/StatCard'
 import { useDemoSession } from '../demo/DemoSessionContext'
+import { DEMO_SESSION_LIFETIME_HOURS } from '../demo/sessionConfig'
 
 export function DashboardPage() {
   const { data, isLoading, error } = useDashboard()
@@ -17,6 +18,9 @@ export function DashboardPage() {
       <div className="rounded-2xl border border-[#5b1714] bg-[linear-gradient(135deg,rgba(255,122,34,0.14),rgba(217,45,32,0.05),rgba(35,9,7,0.92))] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
         <h2 className="text-2xl font-bold text-[#fff6f2]">Dashboard</h2>
         <p className="mt-1 text-[#d8a290]">Overview of projects and tasks across the workspace.</p>
+        <p className="mt-2 text-sm text-[#b88172]">
+          Sessions are saved for up to {DEMO_SESSION_LIFETIME_HOURS} hours due to temporary demo storage.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

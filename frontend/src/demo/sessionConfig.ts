@@ -1,0 +1,1 @@
+export const DEMO_SESSION_LIFETIME_HOURS = 72

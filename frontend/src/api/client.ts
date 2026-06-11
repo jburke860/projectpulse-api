@@ -31,6 +31,11 @@ export function setStoredDemoSessionId(sessionId: string) {
   window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, sessionId)
 }
 
+export function clearStoredDemoSessionId() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY)
+}
+
 export function getApiDocsUrl() {
   const configuredDocsUrl = import.meta.env.VITE_API_DOCS_URL
   if (configuredDocsUrl) return configuredDocsUrl

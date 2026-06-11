@@ -23,11 +23,11 @@ public static class WorkspaceQueryExtensions
 
     public static IQueryable<User> VisibleTo(this IQueryable<User> users, Guid userId)
     {
-        var demoEmailPrefix = DemoSessionConstants.EmailSessionPrefix(userId);
+        var demoEmailSuffix = DemoSessionConstants.EmailSessionSuffix(userId);
 
         return users.Where(u =>
             u.Id == userId ||
-            u.Email.StartsWith(demoEmailPrefix) ||
+            u.Email.EndsWith(demoEmailSuffix) ||
             u.Memberships.Any(m => m.Project.Members.Any(pm => pm.UserId == userId)));
     }
 }

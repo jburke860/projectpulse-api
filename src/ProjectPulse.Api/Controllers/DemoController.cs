@@ -22,11 +22,4 @@ public class DemoController : ControllerBase
         var session = await _demoSessions.CreateAsync(cancellationToken);
         return Ok(ApiResult<DemoSessionDto>.Ok(session, "Demo session created."));
     }
-
-    [HttpPost("sessions/{sessionId:guid}/reset")]
-    public async Task<ActionResult<ApiResult<DemoSessionDto>>> ResetSession(Guid sessionId, CancellationToken cancellationToken)
-    {
-        var session = await _demoSessions.ResetAsync(sessionId, cancellationToken);
-        return Ok(ApiResult<DemoSessionDto>.Ok(session, "Demo session reset."));
-    }
 }

@@ -1,12 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
+  clearStoredDemoSessionId,
   getApiDocsUrl,
   getStoredDemoSessionId,
   setStoredDemoSessionId,
 } from '../api/client'
-import { createDemoSession, resetDemoSession } from '../api/queries'
+import { createDemoSession } from '../api/queries'
 import { DemoSessionContext } from './DemoSessionContext'
+import { DEMO_SESSION_LIFETIME_HOURS } from './sessionConfig'
 
 interface DemoSessionProviderProps {
   children: ReactNode
@@ -15,10 +17,14 @@ interface DemoSessionProviderProps {
 export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
   const queryClient = useQueryClient()
   const [sessionId, setSessionId] = useState(() => getStoredDemoSessionId() ?? '')
+  const [hasEnteredSession, setHasEnteredSession] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
-  const [isResetting, setIsResetting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const apiDocsUrl = getApiDocsUrl()
+
+  const refreshToDemoLanding = useCallback(() => {
+    window.location.replace('/')
+  }, [])
 
   const storeSession = useCallback(
     (nextSessionId: string) => {
@@ -29,51 +35,51 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
     [queryClient],
   )
 
-  const startDemo = useCallback(async () => {
+  const startNewSession = useCallback(async () => {
     setIsStarting(true)
     setError(null)
+    clearStoredDemoSessionId()
+    setSessionId('')
+    queryClient.clear()
 
     try {
       const session = await createDemoSession()
       storeSession(session.sessionId)
+      setHasEnteredSession(true)
     } catch {
       setError('Could not start the demo session. Check the API deployment URL and try again.')
     } finally {
       setIsStarting(false)
     }
-  }, [storeSession])
+  }, [queryClient, storeSession])
 
-  const resetDemo = useCallback(async () => {
-    if (!sessionId) {
-      await startDemo()
-      return
-    }
-
-    setIsResetting(true)
+  const resumeDemo = useCallback(() => {
     setError(null)
+    setHasEnteredSession(true)
+  }, [])
 
-    try {
-      const session = await resetDemoSession(sessionId)
-      storeSession(session.sessionId)
-    } catch {
-      setError('Could not reset the demo session. Try again in a moment.')
-    } finally {
-      setIsResetting(false)
-    }
-  }, [sessionId, startDemo, storeSession])
+  const clearCurrentSession = useCallback(() => {
+    setError(null)
+    clearStoredDemoSessionId()
+    setSessionId('')
+    setHasEnteredSession(false)
+    queryClient.clear()
+    refreshToDemoLanding()
+  }, [queryClient, refreshToDemoLanding])
 
   const value = useMemo(
-    () => ({ apiDocsUrl, isResetting, resetDemo, sessionId }),
-    [apiDocsUrl, isResetting, resetDemo, sessionId],
+    () => ({ apiDocsUrl, clearCurrentSession, sessionId }),
+    [apiDocsUrl, clearCurrentSession, sessionId],
   )
 
-  if (!sessionId) {
+  if (!sessionId || !hasEnteredSession) {
     return (
       <DemoStartScreen
-        apiDocsUrl={apiDocsUrl}
         error={error}
+        hasExistingSession={!!sessionId}
         isStarting={isStarting}
-        onStart={startDemo}
+        onResume={resumeDemo}
+        onStartNew={startNewSession}
       />
     )
   }
@@ -82,13 +88,20 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
 }
 
 interface DemoStartScreenProps {
-  apiDocsUrl: string
   error: string | null
+  hasExistingSession: boolean
   isStarting: boolean
-  onStart: () => void
+  onResume: () => void
+  onStartNew: () => void
 }
 
-function DemoStartScreen({ apiDocsUrl, error, isStarting, onStart }: DemoStartScreenProps) {
+function DemoStartScreen({
+  error,
+  hasExistingSession,
+  isStarting,
+  onResume,
+  onStartNew,
+}: DemoStartScreenProps) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="w-full max-w-xl rounded-lg border border-[#5b1714] bg-[#230907]/90 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
@@ -99,8 +112,12 @@ function DemoStartScreen({ apiDocsUrl, error, isStarting, onStart }: DemoStartSc
         />
         <h1 className="mt-8 text-3xl font-bold text-[#fff6f2]">ProjectPulse Demo</h1>
         <p className="mt-3 text-sm leading-6 text-[#d8a290]">
-          Start a temporary workspace for this browser with seeded projects, tasks, members,
-          and activity.
+          {hasExistingSession
+            ? 'Resume the workspace already stored in this browser, or start fresh with a new session.'
+            : 'Start a temporary workspace for this browser with realistic projects, tasks, members, and activity.'}
+        </p>
+        <p className="mt-4 text-xs leading-5 text-[#b88172]">
+          Sessions are saved for up to {DEMO_SESSION_LIFETIME_HOURS} hours due to temporary demo storage.
         </p>
 
         {error && (
@@ -110,23 +127,36 @@ function DemoStartScreen({ apiDocsUrl, error, isStarting, onStart }: DemoStartSc
         )}
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <button
-            type="button"
-            disabled={isStarting}
-            onClick={onStart}
-            className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isStarting ? 'Starting...' : 'Continue as Demo User'}
-          </button>
-          <a
-            href={apiDocsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
-          >
-            View API Docs
-          </a>
+          {hasExistingSession ? (
+            <>
+              <button
+                type="button"
+                onClick={onResume}
+                className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+              >
+                Resume Current Session
+              </button>
+              <button
+                type="button"
+                disabled={isStarting}
+                onClick={onStartNew}
+                className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isStarting ? 'Starting...' : 'Start New Session'}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={isStarting}
+              onClick={onStartNew}
+              className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isStarting ? 'Starting...' : 'Start New Demo Session'}
+            </button>
+          )}
         </div>
+        <p className="mt-7 text-xs text-[#9f6d61]">Created by Jeremy Burke</p>
       </section>
     </main>
   )

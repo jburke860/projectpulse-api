@@ -30,10 +30,6 @@ export function createDemoSession() {
   return postData<DemoSession>('/api/demo/sessions', {})
 }
 
-export function resetDemoSession(sessionId: string) {
-  return postData<DemoSession>(`/api/demo/sessions/${sessionId}/reset`, {})
-}
-
 export function useDashboard() {
   return useQuery({
     queryKey: queryKeys.dashboard,

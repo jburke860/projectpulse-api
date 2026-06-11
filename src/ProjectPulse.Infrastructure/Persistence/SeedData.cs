@@ -50,14 +50,16 @@ public static class SeedData
 
     public static async Task SeedDemoWorkspaceAsync(ApplicationDbContext db, Guid sessionUserId, CancellationToken cancellationToken = default)
     {
-        var emailPrefix = DemoSessionConstants.EmailSessionPrefix(sessionUserId);
         var users = new List<User>
         {
-            new(sessionUserId, $"{emailPrefix}admin@{DemoSessionConstants.EmailDomain}", "Demo User")
+            new(
+                sessionUserId,
+                DemoSessionConstants.SessionEmail(sessionUserId, DemoSessionConstants.AdminEmailLocalPart),
+                "Demo User")
         };
 
         users.AddRange(DemoUsers.Select(user =>
-            new User($"{emailPrefix}{user.Key}@{DemoSessionConstants.EmailDomain}", user.DisplayName)));
+            new User(DemoSessionConstants.SessionEmail(sessionUserId, user.Key), user.DisplayName)));
 
         await SeedWorkspaceAsync(db, users, sessionUserId, cancellationToken);
     }

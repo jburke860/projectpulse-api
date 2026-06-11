@@ -2,8 +2,7 @@ import { createContext, useContext } from 'react'
 
 export interface DemoSessionContextValue {
   apiDocsUrl: string
-  isResetting: boolean
-  resetDemo: () => Promise<void>
+  clearCurrentSession: () => void
   sessionId: string
 }
 

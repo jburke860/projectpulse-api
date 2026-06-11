@@ -64,30 +64,6 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task ResetDemoSession_RestoresSeededWorkspace()
-    {
-        var session = await CreateDemoSession();
-
-        var createResponse = await SendWithDemoSessionAsync(
-            HttpMethod.Post,
-            "/api/projects",
-            session.SessionId,
-            new CreateProjectRequest($"Reset Test Project {Guid.NewGuid():N}", null));
-        createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var resetResponse = await _client.PostAsync($"/api/demo/sessions/{session.SessionId}/reset", null);
-        resetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var projectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", session.SessionId);
-        var projects = await projectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
-
-        projects!.Data.Should().HaveCount(3);
-        projects.Data.Should().Contain(p => p.Name == "ProjectPulse Platform");
-        projects.Data.Should().Contain(p => p.Name == "Customer Onboarding");
-        projects.Data.Should().Contain(p => p.Name == "Mobile Companion");
-    }
-
-    [Fact]
     public async Task DeleteProject_RemovesProjectAndTasks()
     {
         var createProjectResponse = await _client.PostAsJsonAsync(

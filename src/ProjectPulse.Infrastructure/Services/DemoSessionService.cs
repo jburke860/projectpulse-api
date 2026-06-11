@@ -25,19 +25,6 @@ public class DemoSessionService : IDemoSessionService
         return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
 
-    public async Task<DemoSessionDto> ResetAsync(Guid sessionId, CancellationToken cancellationToken = default)
-    {
-        if (sessionId == Guid.Empty || sessionId == SeedData.DemoAdminUserId)
-        {
-            sessionId = Guid.NewGuid();
-        }
-
-        await ClearSessionAsync(sessionId, cancellationToken);
-        await SeedData.SeedDemoWorkspaceAsync(_db, sessionId, cancellationToken);
-
-        return await BuildSessionDtoAsync(sessionId, cancellationToken);
-    }
-
     private async Task<DemoSessionDto> BuildSessionDtoAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         var createdAtUtc = await _db.Users.AsNoTracking()
@@ -59,12 +46,11 @@ public class DemoSessionService : IDemoSessionService
     private async Task CleanupExpiredSessionsAsync(CancellationToken cancellationToken)
     {
         var cutoffUtc = DateTime.UtcNow.AddHours(-DemoSessionConstants.LifetimeHours);
-        var adminEmailSuffix = $".admin@{DemoSessionConstants.EmailDomain}";
         var expiredSessionIds = await _db.Users.AsNoTracking()
             .Where(u =>
                 u.CreatedAtUtc < cutoffUtc &&
-                u.Email.StartsWith(DemoSessionConstants.EmailPrefix) &&
-                u.Email.EndsWith(adminEmailSuffix))
+                u.Email.StartsWith($"{DemoSessionConstants.AdminEmailLocalPart}.") &&
+                u.Email.EndsWith($"@{DemoSessionConstants.EmailDomain}"))
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 
@@ -91,9 +77,9 @@ public class DemoSessionService : IDemoSessionService
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        var emailPrefix = DemoSessionConstants.EmailSessionPrefix(sessionId);
+        var emailSuffix = DemoSessionConstants.EmailSessionSuffix(sessionId);
         var users = await _db.Users
-            .Where(u => u.Email.StartsWith(emailPrefix))
+            .Where(u => u.Email.EndsWith(emailSuffix))
             .ToListAsync(cancellationToken);
 
         if (users.Count > 0)

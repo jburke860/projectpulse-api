@@ -8,7 +8,7 @@ const nav = [
 ]
 
 export function Layout() {
-  const { apiDocsUrl, isResetting, resetDemo } = useDemoSession()
+  const { apiDocsUrl, clearCurrentSession } = useDemoSession()
 
   return (
     <div className="min-h-screen">
@@ -50,11 +50,10 @@ export function Layout() {
             </a>
             <button
               type="button"
-              disabled={isResetting}
-              onClick={() => void resetDemo()}
-              className="rounded-full border border-[#ff7b22]/35 px-3 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={clearCurrentSession}
+              className="rounded-full border border-[#ff7b22]/35 px-3 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
             >
-              {isResetting ? 'Resetting...' : 'Reset demo'}
+              Clear and start new session
             </button>
           </div>
         </div>
