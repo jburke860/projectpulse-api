@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ProjectPulse.Application.Common.Constants;
 using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Projects.Dtos;
@@ -26,7 +27,7 @@ public class GetProjectMembersQueryHandler : IRequestHandler<GetProjectMembersQu
             .Select(m => new ProjectMemberDto(
                 m.UserId,
                 m.User.DisplayName,
-                m.User.Email,
+                DemoSessionConstants.PublicDemoEmail(m.User.Email),
                 m.Role.ToString()))
             .ToListAsync(cancellationToken);
 }

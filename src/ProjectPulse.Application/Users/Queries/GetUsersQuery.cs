@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ProjectPulse.Application.Common.Constants;
 using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Users.Dtos;
@@ -23,6 +24,6 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IReadOnlyList
         await _db.Users.AsNoTracking()
             .VisibleTo(_currentUser.UserId)
             .OrderBy(u => u.DisplayName)
-            .Select(u => new UserDto(u.Id, u.DisplayName, u.Email))
+            .Select(u => new UserDto(u.Id, u.DisplayName, DemoSessionConstants.PublicDemoEmail(u.Email)))
             .ToListAsync(cancellationToken);
 }

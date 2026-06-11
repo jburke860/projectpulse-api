@@ -70,20 +70,47 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     public async Task DemoSession_SeedsRealisticWorkspace()
     {
         var session = await CreateDemoSession();
+        var demoSessionId = Guid.Parse(session.SessionId);
+        var sessionCode = DemoSessionConstants.EmailSessionCode(demoSessionId);
+        var expectedStoredSarahEmail = DemoSessionConstants.SessionEmail(demoSessionId, "sarah.kim");
 
         var projectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", session.SessionId);
         projectsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var projects = await projectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
         projects!.Data.Should().HaveCountGreaterThanOrEqualTo(8);
-        projects.Data.Select(p => p.Name).Should().Contain(
+        var projectData = projects.Data!;
+        projectData.Select(p => p.Name).Should().Contain(
             ["Customer Portal Redesign", "Internal Ops Automation", "API Reliability Sprint"]);
 
         var usersResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/users", session.SessionId);
         usersResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var users = await usersResponse.Content.ReadFromJsonAsync<ApiResult<List<UserDto>>>();
         users!.Data.Should().HaveCountGreaterThanOrEqualTo(15);
-        users.Data.Select(u => u.DisplayName).Should().Contain(
+        var userData = users.Data!;
+        userData.Select(u => u.DisplayName).Should().Contain(
             ["Jeremy Burke", "Sarah Kim", "Marcus Lee", "Priya Patel", "Daniel Roberts"]);
+        userData.Single(u => u.DisplayName == "Sarah Kim").Email.Should().Be("sarah.kim@projectpulse.local");
+        userData.Select(u => u.Email).Should().NotContain(email => email.Contains($".{sessionCode}@"));
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var storedSarahEmail = await db.Users
+                .Where(u => u.DisplayName == "Sarah Kim")
+                .Select(u => u.Email)
+                .SingleAsync(email => email == expectedStoredSarahEmail);
+
+            storedSarahEmail.Should().Be(expectedStoredSarahEmail);
+        }
+
+        var projectMembersResponse = await SendWithDemoSessionAsync(
+            HttpMethod.Get,
+            $"/api/projects/{projectData[0].Id}/members",
+            session.SessionId);
+        projectMembersResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var projectMembers = await projectMembersResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectMemberDto>>>();
+        var projectMemberData = projectMembers!.Data!;
+        projectMemberData.Select(m => m.Email).Should().NotContain(email => email.Contains($".{sessionCode}@"));
 
         var tasksResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/tasks", session.SessionId);
         tasksResponse.StatusCode.Should().Be(HttpStatusCode.OK);
