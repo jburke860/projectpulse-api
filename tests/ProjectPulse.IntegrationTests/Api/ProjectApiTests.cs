@@ -271,6 +271,42 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task TaskAssignment_RejectsViewerMembers()
+    {
+        Guid projectId;
+        Guid viewerId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var viewer = await db.ProjectMembers
+                .Where(m =>
+                    m.Role == Domain.Enums.ProjectRole.Viewer &&
+                    m.Project.Members.Any(pm => pm.UserId == SeedData.DemoAdminUserId))
+                .Select(m => new { m.ProjectId, m.UserId })
+                .FirstAsync();
+
+            projectId = viewer.ProjectId;
+            viewerId = viewer.UserId;
+        }
+
+        var createWithViewerResponse = await _client.PostAsJsonAsync(
+            "/api/tasks",
+            new CreateTaskRequest(projectId, "Viewer assignment should fail", null, "Medium", viewerId, null));
+        createWithViewerResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var createWithAdminResponse = await _client.PostAsJsonAsync(
+            "/api/tasks",
+            new CreateTaskRequest(projectId, $"Assignable task {Guid.NewGuid():N}", null, "Medium", SeedData.DemoAdminUserId, null));
+        createWithAdminResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var createdTask = await createWithAdminResponse.Content.ReadFromJsonAsync<ApiResult<TaskDto>>();
+
+        var assignViewerResponse = await _client.PatchAsJsonAsync(
+            $"/api/tasks/{createdTask!.Data!.Id}/assign",
+            new AssignTaskRequest(viewerId));
+        assignViewerResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task CreateTask_WithPastDueDate_ReturnsBadRequest()
     {
         var projectId = await GetSeededProjectId();

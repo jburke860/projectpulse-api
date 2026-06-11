@@ -72,7 +72,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
     private async Task<string> GetProjectMemberDisplayName(Guid projectId, Guid assigneeId, CancellationToken cancellationToken)
     {
         var assigneeName = await _db.ProjectMembers
-            .Where(m => m.ProjectId == projectId && m.UserId == assigneeId)
+            .Where(m => m.ProjectId == projectId && m.UserId == assigneeId && m.Role != ProjectRole.Viewer)
             .Select(m => m.User.DisplayName)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -80,7 +80,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
         {
             throw new Common.Exceptions.ValidationException(new Dictionary<string, string[]>
             {
-                ["assigneeId"] = ["Assignee must be a project member."]
+                ["assigneeId"] = ["Assignee must be an Admin or Member on the project."]
             });
         }
 

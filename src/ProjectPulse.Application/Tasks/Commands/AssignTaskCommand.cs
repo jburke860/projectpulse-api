@@ -39,14 +39,17 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, TaskD
         if (command.Request.AssigneeId.HasValue)
         {
             assigneeName = await _db.ProjectMembers
-                .Where(m => m.ProjectId == task.ProjectId && m.UserId == command.Request.AssigneeId)
+                .Where(m =>
+                    m.ProjectId == task.ProjectId &&
+                    m.UserId == command.Request.AssigneeId &&
+                    m.Role != ProjectRole.Viewer)
                 .Select(m => m.User.DisplayName)
                 .FirstOrDefaultAsync(cancellationToken);
             if (assigneeName is null)
             {
                 throw new Common.Exceptions.ValidationException(new Dictionary<string, string[]>
                 {
-                    ["assigneeId"] = ["Assignee must be a project member."]
+                    ["assigneeId"] = ["Assignee must be an Admin or Member on the project."]
                 });
             }
         }

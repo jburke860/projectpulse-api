@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  addTaskComment,
+  changeTaskStatus,
+  queryKeys,
   useAddProjectMember,
   useCreateTask,
   useDeleteProject,
@@ -24,6 +28,33 @@ const statusColors: Record<string, string> = {
 }
 
 const memberRoles = ['Member', 'Viewer', 'Admin']
+const taskPriorities = ['Low', 'Medium', 'High', 'Critical']
+const taskStatuses = ['Open', 'InProgress', 'InReview', 'Done', 'Cancelled']
+const initialStatusTransitions: Record<string, string[]> = {
+  Open: [],
+  InProgress: ['InProgress'],
+  InReview: ['InProgress', 'InReview'],
+  Done: ['InProgress', 'InReview', 'Done'],
+  Cancelled: ['Cancelled'],
+}
+
+function isAssignableMember(role: string) {
+  return role === 'Admin' || role === 'Member'
+}
+
+function toDueDateUtc(date: string) {
+  return date ? `${date}T00:00:00Z` : undefined
+}
+
+function formatDueDate(date: string | null) {
+  if (!date) return 'No due date'
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(date))
+}
 
 function getMutationErrorMessage(error: unknown) {
   if (!error) return null
@@ -50,6 +81,7 @@ function getMutationErrorMessage(error: unknown) {
 export function ProjectDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data: project } = useProject(id)
   const { data: summary } = useProjectSummary(id)
   const { data: members = [] } = useProjectMembers(id)
@@ -62,9 +94,16 @@ export function ProjectDetailPage() {
   const removeMember = useRemoveProjectMember(id)
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
+  const [taskDescription, setTaskDescription] = useState('')
   const [taskPriority, setTaskPriority] = useState('Medium')
+  const [taskStatus, setTaskStatus] = useState('Open')
+  const [taskDueDate, setTaskDueDate] = useState('')
   const [taskAssigneeId, setTaskAssigneeId] = useState('')
+  const [taskNote, setTaskNote] = useState('')
+  const [taskFormError, setTaskFormError] = useState<string | null>(null)
+  const [isFinalizingTask, setIsFinalizingTask] = useState(false)
   const [memberUserId, setMemberUserId] = useState('')
   const [memberRole, setMemberRole] = useState('Member')
 
@@ -78,8 +117,67 @@ export function ProjectDetailPage() {
       : 0
   const memberIds = new Set(members.map((member) => member.userId))
   const availableUsers = users.filter((user) => !memberIds.has(user.id))
+  const assignableMembers = members.filter((member) => isAssignableMember(member.role))
   const adminCount = members.filter((member) => member.role === 'Admin').length
   const memberMutationError = getMutationErrorMessage(addMember.error ?? removeMember.error)
+  const isCreatingTask = createTask.isPending || isFinalizingTask
+
+  const resetTaskForm = () => {
+    setTaskTitle('')
+    setTaskDescription('')
+    setTaskPriority('Medium')
+    setTaskStatus('Open')
+    setTaskDueDate('')
+    setTaskAssigneeId('')
+    setTaskNote('')
+    setTaskFormError(null)
+  }
+
+  const handleCreateTask = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    if (!taskAssigneeId) {
+      setTaskFormError('Choose an Admin or Member assignee before creating the task.')
+      return
+    }
+
+    try {
+      setTaskFormError(null)
+      const task = await createTask.mutateAsync({
+        title: taskTitle.trim(),
+        description: taskDescription.trim() || undefined,
+        priority: taskPriority,
+        assigneeId: taskAssigneeId,
+        dueDateUtc: toDueDateUtc(taskDueDate),
+      })
+
+      setIsFinalizingTask(true)
+      for (const status of initialStatusTransitions[taskStatus] ?? []) {
+        await changeTaskStatus(task.id, status)
+      }
+
+      if (taskNote.trim()) {
+        await addTaskComment(task.id, taskNote.trim())
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks(id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.task(task.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.taskComments(task.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectSummary(id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
+      ])
+
+      resetTaskForm()
+      setShowTaskForm(false)
+    } catch (mutationError) {
+      setTaskFormError(getMutationErrorMessage(mutationError))
+    } finally {
+      setIsFinalizingTask(false)
+    }
+  }
 
   const handleDeleteProject = () => {
     const confirmed = window.confirm(
@@ -145,67 +243,182 @@ export function ProjectDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-semibold text-[#fff6f2]">Tasks</h3>
+            <button
+              type="button"
+              onClick={() => {
+                if (showTaskForm) {
+                  resetTaskForm()
+                  setShowTaskForm(false)
+                } else {
+                  setTaskFormError(null)
+                  setShowTaskForm(true)
+                }
+              }}
+              className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+            >
+              {showTaskForm ? 'Cancel' : 'New task'}
+            </button>
           </div>
 
-          <form
-            className="flex flex-wrap gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!taskAssigneeId) return
-              createTask.mutate(
-                { title: taskTitle.trim(), priority: taskPriority, assigneeId: taskAssigneeId },
-                {
-                  onSuccess: () => {
-                    setTaskTitle('')
-                    setTaskAssigneeId('')
-                  },
-                },
-              )
-            }}
-          >
-            <input
-              required
-              placeholder="New task title"
-              className="min-w-[200px] flex-1 rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-            />
-            <select
-              required
-              aria-label="Assignee"
-              className="min-w-[160px] rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
-              value={taskAssigneeId}
-              onChange={(e) => setTaskAssigneeId(e.target.value)}
+          {showTaskForm && (
+            <form
+              className="space-y-6 rounded-xl border border-[#5b1714] bg-[#230907]/85 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.24)]"
+              onSubmit={handleCreateTask}
             >
-              <option value="" disabled>
-                Assign to
-              </option>
-              {members.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
-              value={taskPriority}
-              onChange={(e) => setTaskPriority(e.target.value)}
-            >
-              {['Low', 'Medium', 'High', 'Critical'].map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
-            >
-              Add task
-            </button>
-          </form>
+              {taskFormError && (
+                <p className="rounded-lg border border-[#ff5a1f]/40 bg-[#ff5a1f]/10 px-3 py-2 text-sm text-[#ffd1c4]">
+                  {taskFormError}
+                </p>
+              )}
+
+              <section className="space-y-4">
+                <div>
+                  <h4 className="text-lg font-semibold text-[#fff6f2]">Task details</h4>
+                  <p className="mt-1 text-sm text-[#c99182]">Capture enough context for the task to be actionable.</p>
+                </div>
+                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  Task title
+                  <input
+                    required
+                    maxLength={300}
+                    placeholder="Finalize rollout checklist"
+                    className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                  />
+                </label>
+                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  Detailed task description
+                  <textarea
+                    rows={4}
+                    maxLength={1800}
+                    placeholder="Acceptance criteria, implementation notes, dependencies, or launch context"
+                    className="resize-y rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                  />
+                </label>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                    Priority
+                    <select
+                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      value={taskPriority}
+                      onChange={(e) => setTaskPriority(e.target.value)}
+                    >
+                      {taskPriorities.map((priority) => (
+                        <option key={priority} value={priority}>
+                          {priority}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                    Status
+                    <select
+                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      value={taskStatus}
+                      onChange={(e) => setTaskStatus(e.target.value)}
+                    >
+                      {taskStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                    Due date
+                    <input
+                      type="date"
+                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      value={taskDueDate}
+                      onChange={(e) => setTaskDueDate(e.target.value)}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="space-y-4 border-t border-[#5b1714] pt-5">
+                <div>
+                  <h4 className="text-lg font-semibold text-[#fff6f2]">Assignment</h4>
+                  <p className="mt-1 text-sm text-[#c99182]">Only Admin and Member users can own tasks.</p>
+                </div>
+                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  Assignee
+                  <select
+                    required
+                    className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                    value={taskAssigneeId}
+                    onChange={(e) => setTaskAssigneeId(e.target.value)}
+                    disabled={assignableMembers.length === 0}
+                  >
+                    <option value="" disabled>
+                      Select eligible project member
+                    </option>
+                    {assignableMembers.map((member) => (
+                      <option key={member.userId} value={member.userId}>
+                        {member.displayName} · {member.role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </section>
+
+              <section className="space-y-3 border-t border-[#5b1714] pt-5">
+                <h4 className="text-lg font-semibold text-[#fff6f2]">Files</h4>
+                <div className="rounded-lg border border-dashed border-[#ff7b22]/35 bg-[#1e0806]/60 p-4">
+                  <button
+                    type="button"
+                    disabled
+                    className="rounded-lg border border-[#ff7b22]/25 px-4 py-2 text-sm font-medium text-[#b88172] opacity-70"
+                  >
+                    Upload files
+                  </button>
+                  <p className="mt-3 text-sm leading-6 text-[#c99182]">
+                    File attachments are planned for a future version. Hosted demo runs in a lightweight
+                    environment, so uploads are disabled.
+                  </p>
+                </div>
+              </section>
+
+              <section className="space-y-3 border-t border-[#5b1714] pt-5">
+                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  Comments / context
+                  <textarea
+                    rows={3}
+                    maxLength={1200}
+                    placeholder="Optional initial implementation note or handoff context"
+                    className="resize-y rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    value={taskNote}
+                    onChange={(e) => setTaskNote(e.target.value)}
+                  />
+                </label>
+              </section>
+
+              <div className="flex flex-wrap justify-end gap-3 border-t border-[#5b1714] pt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetTaskForm()
+                    setShowTaskForm(false)
+                  }}
+                  className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingTask || !taskTitle.trim() || !taskAssigneeId}
+                  className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isCreatingTask ? 'Creating...' : 'Create task'}
+                </button>
+              </div>
+            </form>
+          )}
 
           <ul className="space-y-2">
             {tasks.map((task) => (
@@ -213,17 +426,22 @@ export function ProjectDetailPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedTaskId(task.id)}
-                  className="flex w-full items-center justify-between rounded-lg border border-[#5b1714] bg-[#230907]/85 px-4 py-3 text-left hover:border-[#ff7b22]/45 hover:bg-[#2a0d0a]"
+                  className="w-full rounded-lg border border-[#5b1714] bg-[#230907]/85 px-4 py-3 text-left hover:border-[#ff7b22]/45 hover:bg-[#2a0d0a]"
                 >
-                  <div>
-                    <p className="font-medium text-[#fff6f2]">{task.title}</p>
-                    <p className="text-xs text-[#c99182]">
-                      {task.assigneeName ?? 'Unassigned'} · {task.priority}
-                    </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-[#fff6f2]">{task.title}</p>
+                      <p className="mt-1 text-xs text-[#c99182]">
+                        {task.assigneeName ?? 'Unassigned'} · {task.priority} · {formatDueDate(task.dueDateUtc)}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-xs ${statusColors[task.status] ?? statusColors.Open}`}>
+                      {task.status}
+                    </span>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${statusColors[task.status] ?? statusColors.Open}`}>
-                    {task.status}
-                  </span>
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#d8a290]">
+                    {task.description || 'No description yet'}
+                  </p>
                 </button>
               </li>
             ))}

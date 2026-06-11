@@ -20,6 +20,10 @@ const allowedStatusTransitions: Record<string, string[]> = {
   Cancelled: ['Cancelled', 'Open'],
 }
 
+function isAssignableMember(role: string) {
+  return role === 'Admin' || role === 'Member'
+}
+
 function getMutationErrorMessage(error: unknown) {
   if (!error) return null
 
@@ -69,6 +73,7 @@ interface LoadedTaskPanelProps extends TaskPanelProps {
 function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelProps) {
   const { data: comments = [] } = useTaskComments(taskId)
   const { data: members = [] } = useProjectMembers(projectId)
+  const assignableMembers = members.filter((member) => isAssignableMember(member.role))
   const updateStatus = useUpdateTaskStatus(taskId, projectId)
   const assignTask = useAssignTask(taskId, projectId)
   const updateTask = useUpdateTask(taskId, projectId)
@@ -193,7 +198,7 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
             onChange={(e) => assignTask.mutate(e.target.value || null)}
           >
             <option value="">Unassigned</option>
-            {members.map((m) => (
+            {assignableMembers.map((m) => (
               <option key={m.userId} value={m.userId}>
                 {m.displayName}
               </option>

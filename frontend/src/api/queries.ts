@@ -157,6 +157,10 @@ export function useCreateProject() {
   })
 }
 
+export function addProjectMember(projectId: string, body: { userId: string; role: string }) {
+  return postData<Record<string, never>>(`/api/projects/${projectId}/members`, body)
+}
+
 export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -189,8 +193,7 @@ function invalidateProjectMemberQueries(queryClient: ReturnType<typeof useQueryC
 export function useAddProjectMember(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { userId: string; role: string }) =>
-      postData<Record<string, never>>(`/api/projects/${projectId}/members`, body),
+    mutationFn: (body: { userId: string; role: string }) => addProjectMember(projectId, body),
     onSuccess: () => invalidateProjectMemberQueries(queryClient, projectId),
   })
 }
@@ -222,11 +225,14 @@ export function useCreateTask(projectId: string) {
   })
 }
 
+export function changeTaskStatus(taskId: string, status: string) {
+  return patchData<Task>(`/api/tasks/${taskId}/status`, { status })
+}
+
 export function useUpdateTaskStatus(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (status: string) =>
-      patchData<Task>(`/api/tasks/${taskId}/status`, { status }),
+    mutationFn: (status: string) => changeTaskStatus(taskId, status),
     onSuccess: (task) => {
       updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
@@ -262,11 +268,14 @@ export function useUpdateTask(taskId: string, projectId: string) {
   })
 }
 
+export function addTaskComment(taskId: string, body: string) {
+  return postData<Comment>(`/api/tasks/${taskId}/comments`, { body })
+}
+
 export function useAddComment(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: string) =>
-      postData<Comment>(`/api/tasks/${taskId}/comments`, { body }),
+    mutationFn: (body: string) => addTaskComment(taskId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.taskComments(taskId) })
       invalidateTaskQueries(queryClient, projectId)
