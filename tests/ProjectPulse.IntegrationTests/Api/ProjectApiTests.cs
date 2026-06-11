@@ -3,11 +3,14 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ProjectPulse.Application.Audit.Dtos;
 using ProjectPulse.Application.Common.Models;
 using ProjectPulse.Application.Demo.Dtos;
 using ProjectPulse.Application.Projects.Dtos;
+using ProjectPulse.Application.Tasks.Commands;
 using ProjectPulse.Application.Tasks.Dtos;
 using ProjectPulse.Application.Common.Constants;
+using ProjectPulse.Application.Users.Dtos;
 using ProjectPulse.Infrastructure.Persistence;
 
 namespace ProjectPulse.IntegrationTests.Api;
@@ -61,6 +64,57 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
         sessionBProjectsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var sessionBProjects = await sessionBProjectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
         sessionBProjects!.Data.Should().NotContain(p => p.Name == projectName);
+    }
+
+    [Fact]
+    public async Task DemoSession_SeedsRealisticWorkspace()
+    {
+        var session = await CreateDemoSession();
+
+        var projectsResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/projects", session.SessionId);
+        projectsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var projects = await projectsResponse.Content.ReadFromJsonAsync<ApiResult<List<ProjectDto>>>();
+        projects!.Data.Should().HaveCountGreaterThanOrEqualTo(8);
+        projects.Data.Select(p => p.Name).Should().Contain(
+            ["Customer Portal Redesign", "Internal Ops Automation", "API Reliability Sprint"]);
+
+        var usersResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/users", session.SessionId);
+        usersResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var users = await usersResponse.Content.ReadFromJsonAsync<ApiResult<List<UserDto>>>();
+        users!.Data.Should().HaveCountGreaterThanOrEqualTo(15);
+        users.Data.Select(u => u.DisplayName).Should().Contain(
+            ["Jeremy Burke", "Sarah Kim", "Marcus Lee", "Priya Patel", "Daniel Roberts"]);
+
+        var tasksResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/tasks", session.SessionId);
+        tasksResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tasks = await tasksResponse.Content.ReadFromJsonAsync<ApiResult<List<TaskDto>>>();
+        tasks!.Data.Should().HaveCountGreaterThanOrEqualTo(40);
+        tasks.Data.Select(t => t.Title).Should().Contain(
+            [
+                "Finalize onboarding checklist copy",
+                "Build account activity timeline",
+                "Add validation for invalid task transitions"
+            ]);
+        tasks.Data.Should().NotContain(t =>
+            t.Title.Contains("Implement endpoint", StringComparison.OrdinalIgnoreCase) ||
+            t.Title.Contains("Write integration test", StringComparison.OrdinalIgnoreCase) ||
+            (t.Description != null && t.Description.Contains("seeded", StringComparison.OrdinalIgnoreCase)));
+        tasks.Data.Count(t => t.AssigneeId is not null).Should().BeGreaterThan(tasks.Data.Count * 3 / 4);
+
+        var timelineTask = tasks.Data.First(t => t.Title == "Build account activity timeline");
+        var commentsResponse = await SendWithDemoSessionAsync(
+            HttpMethod.Get,
+            $"/api/tasks/{timelineTask.Id}/comments",
+            session.SessionId);
+        commentsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var comments = await commentsResponse.Content.ReadFromJsonAsync<ApiResult<List<CommentDto>>>();
+        comments!.Data.Should().Contain(c => c.Body.Contains("support's call notes", StringComparison.OrdinalIgnoreCase));
+
+        var activityResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/activity?limit=50", session.SessionId);
+        activityResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var activity = await activityResponse.Content.ReadFromJsonAsync<ApiResult<List<AuditLogDto>>>();
+        activity!.Data.Should().Contain(a => a.Message.Contains("assigned", StringComparison.OrdinalIgnoreCase));
+        activity.Data.Should().Contain(a => a.Message.Contains("moved", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
