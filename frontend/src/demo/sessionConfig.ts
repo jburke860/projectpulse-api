@@ -1,1 +1,2 @@
-export const DEMO_SESSION_LIFETIME_HOURS = 72
+export const DEMO_SESSION_TEMPORARY_COPY =
+  'Demo sessions are temporary and may reset when the hosted free backend restarts.'

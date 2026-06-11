@@ -1,17 +1,44 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { StatCard } from '../components/StatCard'
 import { useDemoSession } from '../demo/DemoSessionContext'
-import { DEMO_SESSION_LIFETIME_HOURS } from '../demo/sessionConfig'
+import { DEMO_SESSION_TEMPORARY_COPY } from '../demo/sessionConfig'
 
 export function DashboardPage() {
   const { data, isLoading, error } = useDashboard()
-  const { apiDocsUrl } = useDemoSession()
+  const { apiDocsUrl, isStartingSession, startNewSession } = useDemoSession()
+  const navigate = useNavigate()
+
+  const handleStartNewSession = async () => {
+    const didStart = await startNewSession()
+    if (didStart) {
+      navigate('/', { replace: true })
+    }
+  }
 
   if (isLoading) return <p className="text-[#d8a290]">Loading dashboard…</p>
   if (error) return <p className="text-[#ff8d7d]">Could not load dashboard. Check the API deployment URL.</p>
   if (!data) return null
+  if (data.totalProjects === 0) {
+    return (
+      <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-6 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <h2 className="text-2xl font-bold text-[#fff6f2]">Demo session expired</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#d8a290]">
+          This temporary demo session expired because the free hosted backend restarted. Start a fresh
+          session to reload sample projects.
+        </p>
+        <button
+          type="button"
+          disabled={isStartingSession}
+          onClick={handleStartNewSession}
+          className="mt-6 rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isStartingSession ? 'Starting...' : 'Start New Session'}
+        </button>
+      </section>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -19,7 +46,7 @@ export function DashboardPage() {
         <h2 className="text-2xl font-bold text-[#fff6f2]">Dashboard</h2>
         <p className="mt-1 text-[#d8a290]">Overview of projects and tasks across the workspace.</p>
         <p className="mt-2 text-sm text-[#b88172]">
-          Sessions are saved for up to {DEMO_SESSION_LIFETIME_HOURS} hours due to temporary demo storage.
+          {DEMO_SESSION_TEMPORARY_COPY}
         </p>
       </div>
 

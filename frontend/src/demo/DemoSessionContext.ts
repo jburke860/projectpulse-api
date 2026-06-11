@@ -3,7 +3,9 @@ import { createContext, useContext } from 'react'
 export interface DemoSessionContextValue {
   apiDocsUrl: string
   clearCurrentSession: () => void
+  isStartingSession: boolean
   sessionId: string
+  startNewSession: () => Promise<boolean>
 }
 
 export const DemoSessionContext = createContext<DemoSessionContextValue | null>(null)

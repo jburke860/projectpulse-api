@@ -8,7 +8,7 @@ import {
 } from '../api/client'
 import { createDemoSession } from '../api/queries'
 import { DemoSessionContext } from './DemoSessionContext'
-import { DEMO_SESSION_LIFETIME_HOURS } from './sessionConfig'
+import { DEMO_SESSION_TEMPORARY_COPY } from './sessionConfig'
 
 interface DemoSessionProviderProps {
   children: ReactNode
@@ -46,8 +46,10 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
       const session = await createDemoSession()
       storeSession(session.sessionId)
       setHasEnteredSession(true)
+      return true
     } catch {
       setError('Could not start the demo session. Check the API deployment URL and try again.')
+      return false
     } finally {
       setIsStarting(false)
     }
@@ -68,8 +70,8 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
   }, [queryClient, refreshToDemoLanding])
 
   const value = useMemo(
-    () => ({ apiDocsUrl, clearCurrentSession, sessionId }),
-    [apiDocsUrl, clearCurrentSession, sessionId],
+    () => ({ apiDocsUrl, clearCurrentSession, isStartingSession: isStarting, sessionId, startNewSession }),
+    [apiDocsUrl, clearCurrentSession, isStarting, sessionId, startNewSession],
   )
 
   if (!sessionId || !hasEnteredSession) {
@@ -117,7 +119,7 @@ function DemoStartScreen({
             : 'Start a temporary workspace for this browser with realistic projects, tasks, members, and activity.'}
         </p>
         <p className="mt-4 text-xs leading-5 text-[#b88172]">
-          Sessions are saved for up to {DEMO_SESSION_LIFETIME_HOURS} hours due to temporary demo storage.
+          {DEMO_SESSION_TEMPORARY_COPY}
         </p>
 
         {error && (
