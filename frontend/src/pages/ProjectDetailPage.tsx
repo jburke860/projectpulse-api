@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   addTaskComment,
   changeTaskStatus,
@@ -81,6 +81,7 @@ function getMutationErrorMessage(error: unknown) {
 export function ProjectDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const { data: project } = useProject(id)
   const { data: summary } = useProjectSummary(id)
@@ -93,7 +94,6 @@ export function ProjectDetailPage() {
   const addMember = useAddProjectMember(id)
   const removeMember = useRemoveProjectMember(id)
 
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
@@ -121,6 +121,7 @@ export function ProjectDetailPage() {
   const adminCount = members.filter((member) => member.role === 'Admin').length
   const memberMutationError = getMutationErrorMessage(addMember.error ?? removeMember.error)
   const isCreatingTask = createTask.isPending || isFinalizingTask
+  const selectedTaskId = searchParams.get('taskId')
 
   const resetTaskForm = () => {
     setTaskTitle('')
@@ -425,14 +426,15 @@ export function ProjectDetailPage() {
               <li key={task.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedTaskId(task.id)}
+                  onClick={() => setSearchParams({ taskId: task.id })}
                   className="w-full rounded-lg border border-[#5b1714] bg-[#230907]/85 px-4 py-3 text-left hover:border-[#ff7b22]/45 hover:bg-[#2a0d0a]"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-[#fff6f2]">{task.title}</p>
                       <p className="mt-1 text-xs text-[#c99182]">
-                        {task.assigneeName ?? 'Unassigned'} · {task.priority} · {formatDueDate(task.dueDateUtc)}
+                        Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
+                        {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
                       </p>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-xs ${statusColors[task.status] ?? statusColors.Open}`}>
@@ -542,9 +544,9 @@ export function ProjectDetailPage() {
             type="button"
             className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
             aria-label="Close task panel"
-            onClick={() => setSelectedTaskId(null)}
+            onClick={() => setSearchParams({}, { replace: true })}
           />
-          <TaskPanel taskId={selectedTaskId} projectId={id} onClose={() => setSelectedTaskId(null)} />
+          <TaskPanel taskId={selectedTaskId} projectId={id} onClose={() => setSearchParams({}, { replace: true })} />
         </>
       )}
     </div>
