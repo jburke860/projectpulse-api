@@ -99,7 +99,7 @@ The task creation flow captures enough information for a realistic task: title, 
 
 The Activity page provides an audit-style history of workspace events. Activity cards are clickable and open a detail view with actor, timestamp, action type, related task/project context, and comments when available.
 
-![ProjectPulse activity detail modal](readme_images/activity.png)
+![ProjectPulse activity detail modal](readme_images/activity_1.png)
 
 ### Swagger/OpenAPI
 
