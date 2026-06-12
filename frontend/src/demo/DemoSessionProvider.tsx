@@ -7,6 +7,7 @@ import {
   setStoredDemoSessionId,
 } from '../api/client'
 import { createDemoSession } from '../api/queries'
+import { Button } from '../components/ui'
 import { DemoSessionContext } from './DemoSessionContext'
 import { DEMO_SESSION_TEMPORARY_COPY } from './sessionConfig'
 
@@ -106,24 +107,24 @@ function DemoStartScreen({
 }: DemoStartScreenProps) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="w-full max-w-xl rounded-lg border border-[#5b1714] bg-[#230907]/90 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+      <section className="pp-card w-full max-w-xl p-6 sm:p-8">
         <img
           src="/projectpulse-logo-horizontal.svg"
           alt="ProjectPulse"
-          className="h-14 w-auto drop-shadow-[0_8px_24px_rgba(255,102,0,0.3)]"
+          className="h-12 w-auto drop-shadow-[0_10px_28px_rgba(255,122,34,0.22)]"
         />
-        <h1 className="mt-8 text-3xl font-bold text-[#fff6f2]">ProjectPulse Demo</h1>
-        <p className="mt-3 text-sm leading-6 text-[#d8a290]">
+        <h1 className="mt-8 text-3xl font-extrabold tracking-normal text-[#f8fafc]">ProjectPulse Demo</h1>
+        <p className="mt-3 text-sm leading-6 text-[#a9b1c0]">
           {hasExistingSession
             ? 'Resume the workspace already stored in this browser, or start fresh with a new session.'
             : 'Start a temporary workspace for this browser with realistic projects, tasks, members, and activity.'}
         </p>
-        <p className="mt-4 text-xs leading-5 text-[#b88172]">
+        <p className="mt-4 text-xs leading-5 text-[#8e99ad]">
           {DEMO_SESSION_TEMPORARY_COPY}
         </p>
 
         {error && (
-          <p className="mt-5 rounded-lg border border-[#ff5a1f]/40 bg-[#ff5a1f]/10 px-3 py-2 text-sm text-[#ffd1c4]">
+          <p className="mt-5 rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
             {error}
           </p>
         )}
@@ -131,34 +132,32 @@ function DemoStartScreen({
         <div className="mt-8 flex flex-wrap gap-3">
           {hasExistingSession ? (
             <>
-              <button
+              <Button
                 type="button"
                 onClick={onResume}
-                className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
               >
                 Resume Current Session
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 disabled={isStarting}
                 onClick={onStartNew}
-                className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                variant="secondary"
               >
                 {isStarting ? 'Starting...' : 'Start New Session'}
-              </button>
+              </Button>
             </>
           ) : (
-            <button
+            <Button
               type="button"
               disabled={isStarting}
               onClick={onStartNew}
-              className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isStarting ? 'Starting...' : 'Start New Demo Session'}
-            </button>
+            </Button>
           )}
         </div>
-        <p className="mt-7 text-xs text-[#9f6d61]">Created by Jeremy Burke</p>
+        <p className="mt-7 text-xs text-[#687387]">Created by Jeremy Burke</p>
       </section>
     </main>
   )

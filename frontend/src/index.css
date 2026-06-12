@@ -4,18 +4,273 @@ html {
   color-scheme: dark;
 }
 
+#root {
+  min-height: 100vh;
+}
+
 body {
   min-height: 100vh;
-  color: #fff4ef;
+  color: #f8fafc;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background:
-    radial-gradient(circle at top left, rgba(255, 122, 34, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(226, 34, 34, 0.12), transparent 26%),
-    linear-gradient(180deg, #210707 0%, #120404 100%);
+    radial-gradient(circle at 16% -8%, rgba(255, 122, 34, 0.16), transparent 28rem),
+    radial-gradient(circle at 90% 0%, rgba(255, 90, 31, 0.08), transparent 26rem),
+    linear-gradient(180deg, #11141b 0%, #080a0f 52%, #06070b 100%);
 }
 
 ::selection {
   background: rgba(255, 122, 34, 0.35);
   color: #fffaf7;
+}
+
+.pp-page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pp-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pp-eyebrow {
+  color: #ffb36c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pp-title {
+  color: #f8fafc;
+  font-size: clamp(1.75rem, 2vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.pp-subtitle {
+  color: #a9b1c0;
+  line-height: 1.65;
+}
+
+.pp-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
+    rgba(16, 19, 27, 0.88);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+}
+
+.pp-card-hover {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.pp-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 122, 34, 0.46);
+  background:
+    linear-gradient(180deg, rgba(255, 122, 34, 0.08), rgba(255, 255, 255, 0.03)),
+    rgba(18, 21, 30, 0.94);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.pp-hero-card {
+  border: 1px solid rgba(255, 122, 34, 0.18);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 88% 36%, rgba(255, 122, 34, 0.22), transparent 10rem),
+    linear-gradient(135deg, rgba(255, 122, 34, 0.1), rgba(255, 255, 255, 0.04) 40%, rgba(17, 20, 28, 0.92));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.pp-button-primary,
+.pp-button-secondary,
+.pp-button-danger,
+.pp-button-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.pp-button-primary {
+  border: 1px solid rgba(255, 151, 64, 0.55);
+  color: white;
+  background: linear-gradient(135deg, #ff5a1f 0%, #ff7b22 54%, #ffb347 100%);
+  box-shadow: 0 16px 34px rgba(255, 105, 32, 0.24);
+}
+
+.pp-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 42px rgba(255, 105, 32, 0.32);
+}
+
+.pp-button-secondary {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #eef2f7;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.pp-button-secondary:hover {
+  border-color: rgba(255, 122, 34, 0.42);
+  background: rgba(255, 122, 34, 0.08);
+}
+
+.pp-button-danger {
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.16);
+}
+
+.pp-button-danger:hover {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(127, 29, 29, 0.24);
+}
+
+.pp-button-ghost {
+  color: #a9b1c0;
+  background: transparent;
+}
+
+.pp-button-ghost:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pp-button-primary:disabled,
+.pp-button-secondary:disabled,
+.pp-button-danger:disabled,
+.pp-button-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.pp-input,
+.pp-select,
+.pp-textarea {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.75rem;
+  color: #f8fafc;
+  background: rgba(8, 10, 15, 0.72);
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.pp-input,
+.pp-select {
+  padding: 0.65rem 0.75rem;
+}
+
+.pp-textarea {
+  padding: 0.75rem;
+}
+
+.pp-input::placeholder,
+.pp-textarea::placeholder {
+  color: #687387;
+}
+
+.pp-input:focus,
+.pp-select:focus,
+.pp-textarea:focus {
+  border-color: rgba(255, 122, 34, 0.62);
+  background: rgba(8, 10, 15, 0.9);
+  box-shadow: 0 0 0 3px rgba(255, 122, 34, 0.12);
+}
+
+.pp-input:disabled,
+.pp-select:disabled,
+.pp-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pp-label {
+  display: grid;
+  gap: 0.5rem;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 0.28rem 0.6rem;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pp-chip-orange {
+  border-color: rgba(255, 122, 34, 0.36);
+  color: #fed7aa;
+  background: rgba(255, 122, 34, 0.11);
+}
+
+.pp-chip-green {
+  border-color: rgba(74, 222, 128, 0.32);
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.pp-chip-yellow {
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.pp-chip-red {
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pp-icon-tile {
+  display: inline-flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff7ed;
+  background: linear-gradient(135deg, rgba(255, 90, 31, 0.95), rgba(255, 179, 71, 0.9));
+  box-shadow: 0 14px 30px rgba(255, 105, 32, 0.22);
+}
+
+.pp-divider {
+  border-color: rgba(148, 163, 184, 0.13);
 }

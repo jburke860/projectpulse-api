@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { addProjectMember, queryKeys, useCreateProject, useDeleteProject, useProjects, useUsers } from '../api/queries'
 import type { User } from '../api/types'
+import { Badge, Button, Card } from '../components/ui'
 
 const projectRoles = ['Admin', 'Member', 'Viewer'] as const
 const defaultDemoAdminEmail = 'jeremy.demo@projectpulse.local'
@@ -170,88 +171,85 @@ export function ProjectsPage() {
     }
   }
 
-  if (isLoading) return <p className="text-[#d8a290]">Loading projects…</p>
-  if (error) return <p className="text-[#ff8d7d]">Failed to load projects.</p>
+  if (isLoading) return <p className="pp-subtitle">Loading projects...</p>
+  if (error) return <p className="text-sm font-medium text-[#fecaca]">Failed to load projects.</p>
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pp-page-shell">
+      <div className="pp-page-header">
         <div>
-          <h2 className="text-2xl font-bold text-[#fff6f2]">Projects</h2>
-          <p className="mt-1 text-[#d8a290]">{projects.length} projects in the workspace</p>
+          <p className="pp-eyebrow">Workspace</p>
+          <h1 className="pp-title">Projects</h1>
+          <p className="pp-subtitle mt-2">{projects.length} projects in the workspace</p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleToggleForm}
-          className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+          variant={showForm ? 'secondary' : 'primary'}
         >
           {showForm ? 'Cancel' : 'New project'}
-        </button>
+        </Button>
       </div>
 
       {showForm && (
         <form
-          className="space-y-6 rounded-xl border border-[#5b1714] bg-[#230907]/85 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.24)]"
+          className="pp-card space-y-6 p-5 sm:p-6"
           onSubmit={handleCreateProject}
         >
           {formError && (
-            <p className="rounded-lg border border-[#ff5a1f]/40 bg-[#ff5a1f]/10 px-3 py-2 text-sm text-[#ffd1c4]">
+            <p className="rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
               {formError}
             </p>
           )}
 
           <section className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold text-[#fff6f2]">Project details</h3>
-              <p className="mt-1 text-sm text-[#c99182]">Set the basic intake fields before inviting the team.</p>
+              <p className="pp-eyebrow">Step 1</p>
+              <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Project details</h3>
+              <p className="mt-1 text-sm text-[#8e99ad]">Set the basic intake fields before inviting the team.</p>
             </div>
             <div>
-              <label className="grid gap-2 text-sm text-[#e8b9aa]">
+              <label className="pp-label">
                 Project name
                 <input
                   required
                   maxLength={200}
                   placeholder="Customer onboarding portal"
-                  className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                  className="pp-input text-sm"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </label>
             </div>
-            <label className="grid gap-2 text-sm text-[#e8b9aa]">
+            <label className="pp-label">
               Description
               <textarea
                 maxLength={1800}
                 rows={4}
                 placeholder="Scope, outcomes, risks, or launch context"
-                className="resize-y rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                className="pp-textarea resize-y text-sm"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </label>
           </section>
 
-          <section className="space-y-4 border-t border-[#5b1714] pt-5">
+          <section className="space-y-4 border-t pp-divider pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-[#fff6f2]">Members</h3>
-                <p className="mt-1 text-sm text-[#c99182]">At least one Admin is required.</p>
+                <p className="pp-eyebrow">Step 2</p>
+                <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Members</h3>
+                <p className="mt-1 text-sm text-[#8e99ad]">At least one Admin is required.</p>
               </div>
-              <span
-                className={`rounded-full border px-3 py-1 text-xs ${
-                  adminCount > 0
-                    ? 'border-[#ffb347]/35 bg-[#ffb347]/10 text-[#ffe1b0]'
-                    : 'border-[#ff5a1f]/45 bg-[#ff5a1f]/10 text-[#ffd0c1]'
-                }`}
-              >
+              <Badge tone={adminCount > 0 ? 'green' : 'red'}>
                 {adminCount} Admin{adminCount === 1 ? '' : 's'}
-              </span>
+              </Badge>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[1fr_180px_auto]">
               <select
                 aria-label="Select existing user"
-                className="min-w-0 rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60 disabled:cursor-not-allowed disabled:opacity-60"
+                className="pp-select min-w-0 text-sm"
                 value={memberUserId}
                 onChange={(e) => setMemberUserId(e.target.value)}
                 disabled={availableUsers.length === 0}
@@ -267,7 +265,7 @@ export function ProjectsPage() {
               </select>
               <select
                 aria-label="Member role"
-                className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                className="pp-select text-sm"
                 value={memberRole}
                 onChange={(e) => setMemberRole(e.target.value as ProjectRole)}
               >
@@ -281,24 +279,24 @@ export function ProjectsPage() {
                 type="button"
                 disabled={!memberUserId}
                 onClick={handleAddMemberSelection}
-                className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="pp-button-secondary"
               >
                 Add member
               </button>
             </div>
 
-            <ul className="divide-y divide-[#5b1714] overflow-hidden rounded-lg border border-[#5b1714]">
+            <ul className="divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
               {selectedMemberRows.map((member) => {
                 const isDefaultAdmin = member.userId === defaultDemoAdmin?.id
 
                 return (
                   <li
                     key={member.userId}
-                    className="grid gap-3 bg-[#1e0806]/60 p-3 sm:grid-cols-[1fr_160px_auto] sm:items-center"
+                    className="grid gap-3 bg-white/[0.025] p-3 sm:grid-cols-[1fr_160px_auto] sm:items-center"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[#fff0e8]">{member.user.displayName}</p>
-                      <p className="truncate text-xs text-[#c99182]">
+                      <p className="truncate text-sm font-semibold text-[#f8fafc]">{member.user.displayName}</p>
+                      <p className="truncate text-xs text-[#8e99ad]">
                         {member.user.email}
                         {isDefaultAdmin ? ' · Default demo admin' : ''}
                       </p>
@@ -306,7 +304,7 @@ export function ProjectsPage() {
                     <select
                       aria-label={`${member.user.displayName} role`}
                       disabled={isDefaultAdmin}
-                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="pp-select text-sm"
                       value={member.role}
                       onChange={(e) => handleMemberRoleChange(member.userId, e.target.value as ProjectRole)}
                     >
@@ -320,7 +318,7 @@ export function ProjectsPage() {
                       type="button"
                       disabled={isDefaultAdmin}
                       onClick={() => handleRemoveMemberSelection(member.userId)}
-                      className="rounded-lg border border-[#ff5a1f]/35 px-3 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-45"
+                      className="pp-button-danger min-h-0 px-3 py-2"
                     >
                       Remove
                     </button>
@@ -330,69 +328,78 @@ export function ProjectsPage() {
             </ul>
           </section>
 
-          <section className="space-y-3 border-t border-[#5b1714] pt-5">
-            <h3 className="text-lg font-semibold text-[#fff6f2]">Files</h3>
-            <div className="rounded-lg border border-dashed border-[#ff7b22]/35 bg-[#1e0806]/60 p-4">
+          <section className="space-y-3 border-t pp-divider pt-5">
+            <div>
+              <p className="pp-eyebrow">Step 3</p>
+              <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Files</h3>
+            </div>
+            <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
               <button
                 type="button"
                 disabled
-                className="rounded-lg border border-[#ff7b22]/25 px-4 py-2 text-sm font-medium text-[#b88172] opacity-70"
+                className="pp-button-secondary opacity-60"
               >
                 Upload files
               </button>
-              <p className="mt-3 text-sm leading-6 text-[#c99182]">
+              <p className="mt-3 text-sm leading-6 text-[#8e99ad]">
                 File attachments are planned for a future version. Hosted demo runs in a lightweight
                 environment, so uploads are disabled.
               </p>
             </div>
           </section>
 
-          <div className="flex flex-wrap justify-end gap-3 border-t border-[#5b1714] pt-5">
-            <button
+          <div className="flex flex-wrap justify-end gap-3 border-t pp-divider pt-5">
+            <Button
               type="button"
               onClick={handleToggleForm}
-              className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+              variant="secondary"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!canCreateProject}
-              className="rounded-lg bg-gradient-to-r from-[#ff7b22] to-[#ffb347] px-4 py-2 text-sm font-medium text-[#2b0908] shadow-[0_12px_28px_rgba(255,122,34,0.22)] hover:from-[#ff8a1c] hover:to-[#ffd06d] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmittingProject ? 'Creating...' : 'Create project'}
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         {projects.map((project) => (
-          <article
-            key={project.id}
-            className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-5 transition hover:border-[#ff7b22]/45 hover:bg-[#2a0d0a] hover:shadow-[0_18px_42px_rgba(0,0,0,0.24)]"
-          >
-            <Link to={`/projects/${project.id}`} className="block">
-              <h3 className="font-semibold text-[#fff6f2]">{project.name}</h3>
-              <p className="mt-2 line-clamp-2 text-sm text-[#d8a290]">
-                {project.description || 'No description'}
-              </p>
-            </Link>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-4 text-xs text-[#c99182]">
+          <Card key={project.id} interactive className="group flex min-h-[15rem] flex-col p-5 sm:p-6">
+            <Link to={`/projects/${project.id}`} className="flex flex-1 flex-col">
+              <div className="flex items-start justify-between gap-4">
+                <span className="pp-icon-tile text-lg font-black">
+                  {project.name.charAt(0).toUpperCase()}
+                </span>
+                <Badge tone="green">Active</Badge>
+              </div>
+              <div className="mt-5">
+                <h2 className="text-lg font-bold text-[#f8fafc] transition group-hover:text-[#fed7aa]">
+                  {project.name}
+                </h2>
+                <p className="mt-2 line-clamp-2 max-w-xl text-sm leading-6 text-[#a9b1c0]">
+                  {project.description || 'No description'}
+                </p>
+              </div>
+              <div className="mt-auto flex flex-wrap gap-4 pt-8 text-sm text-[#8e99ad]">
                 <span>{project.taskCount} tasks</span>
                 <span>{project.memberCount} members</span>
               </div>
+            </Link>
+            <div className="mt-5 flex justify-end border-t pp-divider pt-4">
               <button
                 type="button"
                 disabled={deleteProject.isPending}
                 onClick={() => handleDeleteProject(project.id, project.name)}
-                className="rounded-lg border border-[#ff5a1f]/40 px-3 py-1.5 text-xs font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="pp-button-danger min-h-0 px-3 py-2 text-xs"
               >
                 Delete
               </button>
             </div>
-          </article>
+          </Card>
         ))}
       </div>
     </div>

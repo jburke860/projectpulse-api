@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { StatCard } from '../components/StatCard'
+import { Button, Card } from '../components/ui'
 import { useDemoSession } from '../demo/DemoSessionContext'
 import { DEMO_SESSION_TEMPORARY_COPY } from '../demo/sessionConfig'
 
@@ -17,69 +18,97 @@ export function DashboardPage() {
     }
   }
 
-  if (isLoading) return <p className="text-[#d8a290]">Loading dashboard…</p>
-  if (error) return <p className="text-[#ff8d7d]">Could not load dashboard. Check the API deployment URL.</p>
+  if (isLoading) return <p className="pp-subtitle">Loading dashboard...</p>
+  if (error) return <p className="text-sm font-medium text-[#fecaca]">Could not load dashboard. Check the API deployment URL.</p>
   if (!data) return null
   if (data.totalProjects === 0) {
     return (
-      <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-6 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-        <h2 className="text-2xl font-bold text-[#fff6f2]">Demo session expired</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#d8a290]">
+      <Card className="p-6 sm:p-8">
+        <h2 className="text-2xl font-bold text-[#f8fafc]">Demo session expired</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#a9b1c0]">
           This temporary demo session expired because the free hosted backend restarted. Start a fresh
           session to reload sample projects.
         </p>
-        <button
+        <Button
           type="button"
           disabled={isStartingSession}
           onClick={handleStartNewSession}
-          className="mt-6 rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6"
         >
           {isStartingSession ? 'Starting...' : 'Start New Session'}
-        </button>
-      </section>
+        </Button>
+      </Card>
     )
   }
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl border border-[#5b1714] bg-[linear-gradient(135deg,rgba(255,122,34,0.14),rgba(217,45,32,0.05),rgba(35,9,7,0.92))] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
-        <h2 className="text-2xl font-bold text-[#fff6f2]">Dashboard</h2>
-        <p className="mt-1 text-[#d8a290]">Overview of projects and tasks across the workspace.</p>
-        <p className="mt-2 text-sm text-[#b88172]">
-          {DEMO_SESSION_TEMPORARY_COPY}
-        </p>
-      </div>
+    <div className="pp-page-shell">
+      <section className="pp-hero-card p-6 sm:p-8">
+        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">
+              Welcome back, Demo User!
+            </h1>
+            <p className="mt-2 max-w-2xl text-[#cbd5e1]">
+              Here's what's happening across your ProjectPulse workspace.
+            </p>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#8e99ad]">
+              {DEMO_SESSION_TEMPORARY_COPY}
+            </p>
+          </div>
+          <div className="hidden sm:flex">
+            <span className="pp-icon-tile h-16 w-16 text-xl font-black">PP</span>
+          </div>
+        </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total projects" value={data.totalProjects} accent="ember" />
-        <StatCard label="Open tasks" value={data.openTasks} accent="amber" />
-        <StatCard label="Completed tasks" value={data.completedTasks} accent="sunset" />
-        <StatCard label="Overdue tasks" value={data.overdueTasks} accent="rose" />
+        <StatCard label="Total projects" value={data.totalProjects} hint="All time" accent="ember" />
+        <StatCard label="Open tasks" value={data.openTasks} hint="Needs attention" accent="amber" />
+        <StatCard label="Completed tasks" value={data.completedTasks} hint="All caught up" accent="sunset" />
+        <StatCard label="Overdue tasks" value={data.overdueTasks} hint="Past due" accent="rose" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-6 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+        <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-[#fff6f2]">Recent activity</h3>
-            <Link to="/activity" className="text-sm text-[#ffb15f] hover:text-[#ffd2b3]">
+            <div>
+              <p className="pp-eyebrow">Latest</p>
+              <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Recent activity</h2>
+            </div>
+            <Link to="/activity" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
               View all
             </Link>
           </div>
           <ActivityFeed items={data.recentActivity} compact />
-        </section>
+        </Card>
 
-        <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-6 shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
-          <h3 className="font-semibold text-[#fff6f2]">Quick start</h3>
-          <ul className="mt-4 space-y-3 text-sm text-[#e0b8a8]">
-            <li>1. Browse seeded projects on the Projects page.</li>
-            <li>2. Open a project to view tasks and members.</li>
-            <li>3. Click a task to assign, change status, or comment.</li>
-            <li>4. Open Swagger for raw API exploration.</li>
+        <Card className="p-5 sm:p-6">
+          <p className="pp-eyebrow">Guide</p>
+          <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Quick start</h2>
+          <p className="mt-2 text-sm text-[#a9b1c0]">Explore the seeded workspace in a few focused steps.</p>
+          <ul className="mt-5 space-y-4 text-sm text-[#cbd5e1]">
+            {[
+              ['Browse projects', 'Review the workspace portfolio and task volume.'],
+              ['Open a project', 'Inspect tasks, members, project progress, and activity.'],
+              ['Take action', 'Assign tasks, update status, or leave a comment.'],
+              ['Integrate', 'Use the API docs to inspect available endpoints.'],
+            ].map(([title, detail], index) => (
+              <li key={title} className="flex gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ff7b22]/15 text-xs font-bold text-[#fed7aa] ring-1 ring-[#ff7b22]/30">
+                  {index + 1}
+                </span>
+                <span>
+                  <span className="block font-semibold text-[#f8fafc]">{title}</span>
+                  <span className="text-[#8e99ad]">{detail}</span>
+                </span>
+              </li>
+            ))}
           </ul>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               to="/projects"
-              className="inline-block rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+              className="pp-button-primary"
             >
               View projects
             </Link>
@@ -87,12 +116,12 @@ export function DashboardPage() {
               href={apiDocsUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-block rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+              className="pp-button-secondary"
             >
               API Docs
             </a>
           </div>
-        </section>
+        </Card>
       </div>
     </div>
   )

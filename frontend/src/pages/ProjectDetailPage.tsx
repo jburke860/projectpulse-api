@@ -18,13 +18,14 @@ import {
 } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { TaskPanel } from '../components/TaskPanel'
+import { Badge, Button, Card } from '../components/ui'
 
-const statusColors: Record<string, string> = {
-  Open: 'border border-[#5a1914] bg-[#24100d] text-[#fff0e8]',
-  InProgress: 'border border-[#ff7b22]/30 bg-[#ff7b22]/12 text-[#ffd2b3]',
-  InReview: 'border border-[#ffb347]/30 bg-[#ffb347]/12 text-[#ffe1b0]',
-  Done: 'border border-[#d92d20]/30 bg-[#d92d20]/12 text-[#ffc7bf]',
-  Cancelled: 'border border-[#ff5a1f]/30 bg-[#ff5a1f]/12 text-[#ffd0c1]',
+const statusTones: Record<string, 'neutral' | 'orange' | 'yellow' | 'green' | 'red'> = {
+  Open: 'neutral',
+  InProgress: 'orange',
+  InReview: 'yellow',
+  Done: 'green',
+  Cancelled: 'red',
 }
 
 const memberRoles = ['Member', 'Viewer', 'Admin']
@@ -108,7 +109,7 @@ export function ProjectDetailPage() {
   const [memberRole, setMemberRole] = useState('Member')
 
   if (!project) {
-    return <p className="text-[#d8a290]">Loading project…</p>
+    return <p className="pp-subtitle">Loading project...</p>
   }
 
   const progress =
@@ -193,24 +194,29 @@ export function ProjectDetailPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link to="/projects" className="text-sm text-[#ffb15f] hover:text-[#ffd2b3]">
-            ← Back to projects
-          </Link>
-          <h2 className="mt-2 text-2xl font-bold text-[#fff6f2]">{project.name}</h2>
-          <p className="mt-1 text-[#d8a290]">{project.description}</p>
+    <div className="pp-page-shell">
+      <section className="pp-hero-card p-6 sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div>
+            <Link to="/projects" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+              Back to projects
+            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="pp-title">{project.name}</h1>
+              <Badge tone="green">Active</Badge>
+            </div>
+            <p className="pp-subtitle mt-3 max-w-3xl">{project.description}</p>
+          </div>
+          <Button
+            type="button"
+            disabled={deleteProject.isPending}
+            onClick={handleDeleteProject}
+            variant="danger"
+          >
+            Delete project
+          </Button>
         </div>
-        <button
-          type="button"
-          disabled={deleteProject.isPending}
-          onClick={handleDeleteProject}
-          className="rounded-lg border border-[#ff5a1f]/45 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Delete project
-        </button>
-      </div>
+      </section>
 
       {summary && (
         <div className="grid gap-3 sm:grid-cols-5">
@@ -221,32 +227,35 @@ export function ProjectDetailPage() {
             ['Done', summary.doneTasks],
             ['Overdue', summary.overdueTasks],
           ].map(([label, value]) => (
-            <div key={label as string} className="rounded-lg border border-[#5b1714] bg-[#230907]/85 p-3 text-center">
-              <p className="text-xs text-[#c99182]">{label}</p>
-              <p className="text-xl font-bold text-[#fff6f2]">{value as number}</p>
-            </div>
+            <Card key={label as string} className="p-4 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">{label}</p>
+              <p className="mt-1 text-2xl font-bold text-[#f8fafc]">{value as number}</p>
+            </Card>
           ))}
         </div>
       )}
 
-      <div className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-4">
+      <Card className="p-5">
         <div className="flex justify-between text-sm">
-          <span className="text-[#d8a290]">Progress</span>
-          <span className="text-[#fff6f2]">{progress}% complete</span>
+          <span className="font-semibold text-[#cbd5e1]">Progress</span>
+          <span className="text-[#f8fafc]">{progress}% complete</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#35100c]">
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#d92d20] via-[#ff7b22] to-[#ffb347] transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
-      </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-semibold text-[#fff6f2]">Tasks</h3>
-            <button
+            <div>
+              <p className="pp-eyebrow">Execution</p>
+              <h2 className="mt-1 text-xl font-bold text-[#f8fafc]">Tasks</h2>
+            </div>
+            <Button
               type="button"
               onClick={() => {
                 if (showTaskForm) {
@@ -257,55 +266,56 @@ export function ProjectDetailPage() {
                   setShowTaskForm(true)
                 }
               }}
-              className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e]"
+              variant={showTaskForm ? 'secondary' : 'primary'}
             >
               {showTaskForm ? 'Cancel' : 'New task'}
-            </button>
+            </Button>
           </div>
 
           {showTaskForm && (
             <form
-              className="space-y-6 rounded-xl border border-[#5b1714] bg-[#230907]/85 p-5 shadow-[0_18px_48px_rgba(0,0,0,0.24)]"
+              className="pp-card space-y-6 p-5 sm:p-6"
               onSubmit={handleCreateTask}
             >
               {taskFormError && (
-                <p className="rounded-lg border border-[#ff5a1f]/40 bg-[#ff5a1f]/10 px-3 py-2 text-sm text-[#ffd1c4]">
+                <p className="rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
                   {taskFormError}
                 </p>
               )}
 
               <section className="space-y-4">
                 <div>
-                  <h4 className="text-lg font-semibold text-[#fff6f2]">Task details</h4>
-                  <p className="mt-1 text-sm text-[#c99182]">Capture enough context for the task to be actionable.</p>
+                  <p className="pp-eyebrow">Step 1</p>
+                  <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Task details</h3>
+                  <p className="mt-1 text-sm text-[#8e99ad]">Capture enough context for the task to be actionable.</p>
                 </div>
-                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                <label className="pp-label">
                   Task title
                   <input
                     required
                     maxLength={300}
                     placeholder="Finalize rollout checklist"
-                    className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    className="pp-input text-sm"
                     value={taskTitle}
                     onChange={(e) => setTaskTitle(e.target.value)}
                   />
                 </label>
-                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                <label className="pp-label">
                   Detailed task description
                   <textarea
                     rows={4}
                     maxLength={1800}
                     placeholder="Acceptance criteria, implementation notes, dependencies, or launch context"
-                    className="resize-y rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    className="pp-textarea resize-y text-sm"
                     value={taskDescription}
                     onChange={(e) => setTaskDescription(e.target.value)}
                   />
                 </label>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  <label className="pp-label">
                     Priority
                     <select
-                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      className="pp-select text-sm"
                       value={taskPriority}
                       onChange={(e) => setTaskPriority(e.target.value)}
                     >
@@ -316,10 +326,10 @@ export function ProjectDetailPage() {
                       ))}
                     </select>
                   </label>
-                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  <label className="pp-label">
                     Status
                     <select
-                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      className="pp-select text-sm"
                       value={taskStatus}
                       onChange={(e) => setTaskStatus(e.target.value)}
                     >
@@ -330,11 +340,11 @@ export function ProjectDetailPage() {
                       ))}
                     </select>
                   </label>
-                  <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                  <label className="pp-label">
                     Due date
                     <input
                       type="date"
-                      className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                      className="pp-input text-sm"
                       value={taskDueDate}
                       onChange={(e) => setTaskDueDate(e.target.value)}
                     />
@@ -342,16 +352,17 @@ export function ProjectDetailPage() {
                 </div>
               </section>
 
-              <section className="space-y-4 border-t border-[#5b1714] pt-5">
+              <section className="space-y-4 border-t pp-divider pt-5">
                 <div>
-                  <h4 className="text-lg font-semibold text-[#fff6f2]">Assignment</h4>
-                  <p className="mt-1 text-sm text-[#c99182]">Only Admin and Member users can own tasks.</p>
+                  <p className="pp-eyebrow">Step 2</p>
+                  <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Assignment</h3>
+                  <p className="mt-1 text-sm text-[#8e99ad]">Only Admin and Member users can own tasks.</p>
                 </div>
-                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+                <label className="pp-label">
                   Assignee
                   <select
                     required
-                    className="rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                    className="pp-select text-sm"
                     value={taskAssigneeId}
                     onChange={(e) => setTaskAssigneeId(e.target.value)}
                     disabled={assignableMembers.length === 0}
@@ -368,80 +379,80 @@ export function ProjectDetailPage() {
                 </label>
               </section>
 
-              <section className="space-y-3 border-t border-[#5b1714] pt-5">
-                <h4 className="text-lg font-semibold text-[#fff6f2]">Files</h4>
-                <div className="rounded-lg border border-dashed border-[#ff7b22]/35 bg-[#1e0806]/60 p-4">
+              <section className="space-y-3 border-t pp-divider pt-5">
+                <div>
+                  <p className="pp-eyebrow">Step 3</p>
+                  <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Files</h3>
+                </div>
+                <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
                   <button
                     type="button"
                     disabled
-                    className="rounded-lg border border-[#ff7b22]/25 px-4 py-2 text-sm font-medium text-[#b88172] opacity-70"
+                    className="pp-button-secondary opacity-60"
                   >
                     Upload files
                   </button>
-                  <p className="mt-3 text-sm leading-6 text-[#c99182]">
+                  <p className="mt-3 text-sm leading-6 text-[#8e99ad]">
                     File attachments are planned for a future version. Hosted demo runs in a lightweight
                     environment, so uploads are disabled.
                   </p>
                 </div>
               </section>
 
-              <section className="space-y-3 border-t border-[#5b1714] pt-5">
-                <label className="grid gap-2 text-sm text-[#e8b9aa]">
+              <section className="space-y-3 border-t pp-divider pt-5">
+                <label className="pp-label">
                   Comments / context
                   <textarea
                     rows={3}
                     maxLength={1200}
                     placeholder="Optional initial implementation note or handoff context"
-                    className="resize-y rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none placeholder:text-[#9d6a5d] focus:border-[#ff7b22]/60"
+                    className="pp-textarea resize-y text-sm"
                     value={taskNote}
                     onChange={(e) => setTaskNote(e.target.value)}
                   />
                 </label>
               </section>
 
-              <div className="flex flex-wrap justify-end gap-3 border-t border-[#5b1714] pt-5">
-                <button
+              <div className="flex flex-wrap justify-end gap-3 border-t pp-divider pt-5">
+                <Button
                   type="button"
                   onClick={() => {
                     resetTaskForm()
                     setShowTaskForm(false)
                   }}
-                  className="rounded-lg border border-[#ff7b22]/35 px-4 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+                  variant="secondary"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={isCreatingTask || !taskTitle.trim() || !taskAssigneeId}
-                  className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-4 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(255,106,26,0.25)] hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isCreatingTask ? 'Creating...' : 'Create task'}
-                </button>
+                </Button>
               </div>
             </form>
           )}
 
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {tasks.map((task) => (
               <li key={task.id}>
                 <button
                   type="button"
                   onClick={() => setSearchParams({ taskId: task.id })}
-                  className="w-full rounded-lg border border-[#5b1714] bg-[#230907]/85 px-4 py-3 text-left hover:border-[#ff7b22]/45 hover:bg-[#2a0d0a]"
+                  className="pp-card pp-card-hover w-full px-4 py-4 text-left"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium text-[#fff6f2]">{task.title}</p>
-                      <p className="mt-1 text-xs text-[#c99182]">
+                      <p className="font-semibold text-[#f8fafc]">{task.title}</p>
+                      <p className="mt-1 text-xs text-[#8e99ad]">
                         Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
                         {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
                       </p>
                     </div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${statusColors[task.status] ?? statusColors.Open}`}>
-                      {task.status}
-                    </span>
+                    <Badge tone={statusTones[task.status] ?? 'neutral'}>{task.status}</Badge>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#d8a290]">
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
                     {task.description || 'No description yet'}
                   </p>
                 </button>
@@ -451,10 +462,13 @@ export function ProjectDetailPage() {
         </section>
 
         <div className="space-y-6">
-          <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-4">
-            <h3 className="font-semibold text-[#fff6f2]">Members</h3>
+          <Card className="p-5">
+            <div>
+              <p className="pp-eyebrow">Team</p>
+              <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Members</h2>
+            </div>
             {memberMutationError && (
-              <p className="mt-3 rounded-lg border border-[#ff5a1f]/40 bg-[#ff5a1f]/10 px-3 py-2 text-sm text-[#ffd1c4]">
+              <p className="mt-3 rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
                 {memberMutationError}
               </p>
             )}
@@ -472,7 +486,7 @@ export function ProjectDetailPage() {
               <select
                 required
                 aria-label="User"
-                className="w-full rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                className="pp-select text-sm"
                 value={memberUserId}
                 onChange={(e) => setMemberUserId(e.target.value)}
                 disabled={availableUsers.length === 0}
@@ -488,7 +502,7 @@ export function ProjectDetailPage() {
               </select>
               <div className="flex gap-2">
                 <select
-                  className="min-w-0 flex-1 rounded-lg border border-[#5a1914] bg-[#24100d] px-3 py-2 text-sm text-[#fff4ef] outline-none focus:border-[#ff7b22]/60"
+                  className="pp-select min-w-0 flex-1 text-sm"
                   value={memberRole}
                   onChange={(e) => setMemberRole(e.target.value)}
                 >
@@ -501,18 +515,18 @@ export function ProjectDetailPage() {
                 <button
                   type="submit"
                   disabled={!memberUserId || addMember.isPending}
-                  className="rounded-lg bg-gradient-to-r from-[#d92d20] to-[#ff8a1c] px-3 py-2 text-sm font-medium text-white hover:from-[#e03a21] hover:to-[#ff9a2e] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="pp-button-primary"
                 >
                   Add
                 </button>
               </div>
             </form>
-            <ul className="mt-4 space-y-2">
+            <ul className="mt-4 space-y-3">
               {members.map((m) => (
-                <li key={m.userId} className="flex items-start justify-between gap-3 text-sm">
+                <li key={m.userId} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm">
                   <div className="min-w-0">
-                    <p className="truncate text-[#fff0e8]">{m.displayName}</p>
-                    <p className="truncate text-xs text-[#c99182]">
+                    <p className="truncate font-semibold text-[#f8fafc]">{m.displayName}</p>
+                    <p className="truncate text-xs text-[#8e99ad]">
                       {m.role} · {m.email}
                     </p>
                   </div>
@@ -520,21 +534,24 @@ export function ProjectDetailPage() {
                     type="button"
                     disabled={removeMember.isPending || (m.role === 'Admin' && adminCount <= 1)}
                     onClick={() => removeMember.mutate(m.userId)}
-                    className="shrink-0 rounded-md border border-[#ff5a1f]/35 px-2 py-1 text-xs font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10 disabled:cursor-not-allowed disabled:opacity-45"
+                    className="pp-button-danger min-h-0 shrink-0 rounded-lg px-2 py-1 text-xs"
                   >
                     Remove
                   </button>
                 </li>
               ))}
             </ul>
-          </section>
+          </Card>
 
-          <section className="rounded-xl border border-[#5b1714] bg-[#230907]/85 p-4">
-            <h3 className="font-semibold text-[#fff6f2]">Recent activity</h3>
+          <Card className="p-5">
+            <div>
+              <p className="pp-eyebrow">Latest</p>
+              <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Recent activity</h2>
+            </div>
             <div className="mt-3 max-h-64 overflow-y-auto">
               <ActivityFeed items={activity.slice(0, 5)} compact />
             </div>
-          </section>
+          </Card>
         </div>
       </div>
 

@@ -1,19 +1,23 @@
 import { useActivity } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { Card, PageHeader } from '../components/ui'
 
 export function ActivityPage() {
   const { data: activity = [], isLoading, error } = useActivity()
 
-  if (isLoading) return <p className="text-[#d8a290]">Loading activity…</p>
-  if (error) return <p className="text-[#ff8d7d]">Failed to load activity log.</p>
+  if (isLoading) return <p className="pp-subtitle">Loading activity...</p>
+  if (error) return <p className="text-sm font-medium text-[#fecaca]">Failed to load activity log.</p>
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-[#fff6f2]">Activity log</h2>
-        <p className="mt-1 text-[#d8a290]">Audit history for tasks, assignments, and comments.</p>
-      </div>
-      <ActivityFeed items={activity} />
+    <div className="pp-page-shell">
+      <PageHeader
+        eyebrow="Workspace"
+        title="Activity log"
+        description="Audit history for tasks, assignments, project changes, and comments."
+      />
+      <Card className="p-5 sm:p-6">
+        <ActivityFeed items={activity} />
+      </Card>
     </div>
   )
 }

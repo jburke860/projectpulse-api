@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useDemoSession } from '../demo/DemoSessionContext'
+import { cn } from '../lib/cn'
 
 const nav = [
   { to: '/', label: 'Dashboard', end: true },
@@ -12,28 +13,29 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-[#5c1713]/70 bg-[#170606]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0a0d13]/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <img
               src="/projectpulse-logo-horizontal.svg"
               alt="ProjectPulse"
-              className="h-12 w-auto drop-shadow-[0_8px_24px_rgba(255,102,0,0.3)] sm:h-14"
+              className="h-10 w-auto drop-shadow-[0_10px_28px_rgba(255,122,34,0.22)] sm:h-11"
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <nav className="flex flex-wrap justify-end gap-2">
+            <nav className="flex flex-wrap justify-end gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1">
               {nav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.end}
                   className={({ isActive }) =>
-                    `rounded-full border px-3 py-2 text-sm font-medium transition ${
+                    cn(
+                      'rounded-lg px-3 py-2 text-sm font-semibold transition',
                       isActive
-                        ? 'border-[#ff7b22]/50 bg-[#ff5a1f]/20 text-[#ffd3bd] shadow-[0_0_0_1px_rgba(255,122,34,0.15)]'
-                        : 'border-transparent text-[#d8b2a7] hover:border-[#ff7b22]/30 hover:bg-[#2a0d0a] hover:text-[#fff1ea]'
-                    }`
+                        ? 'bg-[#ff7b22]/15 text-[#fff7ed] shadow-[inset_0_0_0_1px_rgba(255,122,34,0.35)]'
+                        : 'text-[#a9b1c0] hover:bg-white/[0.06] hover:text-[#f8fafc]',
+                    )
                   }
                 >
                   {item.label}
@@ -44,21 +46,21 @@ export function Layout() {
               href={apiDocsUrl}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full border border-[#ff7b22]/35 px-3 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+              className="pp-button-secondary min-h-0 px-3 py-2"
             >
               API Docs
             </a>
             <button
               type="button"
               onClick={clearCurrentSession}
-              className="rounded-full border border-[#ff7b22]/35 px-3 py-2 text-sm font-medium text-[#ffd0c1] hover:border-[#ff8d7d] hover:bg-[#ff5a1f]/10"
+              className="pp-button-secondary min-h-0 px-3 py-2"
             >
               Clear and start new session
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
         <Outlet />
       </main>
     </div>
