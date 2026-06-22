@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   clearStoredDemoSessionId,
   getApiDocsUrl,
@@ -10,6 +10,9 @@ import { createDemoSession } from '../api/queries'
 import { Button } from '../components/ui'
 import { DemoSessionContext } from './DemoSessionContext'
 import { DEMO_SESSION_TEMPORARY_COPY } from './sessionConfig'
+
+const SLOW_START_DELAY_MS = 5_000
+const DEMO_SESSION_SLOW_START_COPY = 'This may take a few minutes if the backend has to boot up.'
 
 interface DemoSessionProviderProps {
   children: ReactNode
@@ -105,6 +108,21 @@ function DemoStartScreen({
   onResume,
   onStartNew,
 }: DemoStartScreenProps) {
+  const [showSlowStartMessage, setShowSlowStartMessage] = useState(false)
+
+  useEffect(() => {
+    if (!isStarting) {
+      setShowSlowStartMessage(false)
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowSlowStartMessage(true)
+    }, SLOW_START_DELAY_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [isStarting])
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <section className="pp-card w-full max-w-xl p-6 sm:p-8">
@@ -157,6 +175,14 @@ function DemoStartScreen({
             </Button>
           )}
         </div>
+        {showSlowStartMessage && (
+          <p
+            className="mt-4 rounded-xl border border-[#ffb36c]/25 bg-[#ff7a22]/10 px-3 py-2 text-sm leading-5 text-[#fed7aa]"
+            role="status"
+          >
+            {DEMO_SESSION_SLOW_START_COPY}
+          </p>
+        )}
         <p className="mt-7 text-xs text-[#687387]">Created by Jeremy Burke</p>
       </section>
     </main>
