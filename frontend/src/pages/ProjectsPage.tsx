@@ -1,9 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { ArrowRight, ListChecks, Plus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { addProjectMember, queryKeys, useCreateProject, useDeleteProject, useProjects, useUsers } from '../api/queries'
 import type { User } from '../api/types'
+import { ProjectIconTile } from '../components/ProjectIconTile'
 import { Badge, Button, Card } from '../components/ui'
+import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
 
 const projectRoles = ['Admin', 'Member', 'Viewer'] as const
 const defaultDemoAdminEmail = 'jeremy.demo@projectpulse.local'
@@ -49,6 +52,7 @@ export function ProjectsPage() {
   const deleteProject = useDeleteProject()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [status, setStatus] = useState('Active')
   const [showForm, setShowForm] = useState(false)
   const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([])
   const [memberUserId, setMemberUserId] = useState('')
@@ -84,6 +88,7 @@ export function ProjectsPage() {
   const resetForm = () => {
     setName('')
     setDescription('')
+    setStatus('Active')
     setMemberUserId('')
     setMemberRole('Member')
     setFormError(null)
@@ -135,6 +140,7 @@ export function ProjectsPage() {
       const project = await createProject.mutateAsync({
         name: name.trim(),
         description: description.trim() || undefined,
+        status,
       })
 
       const membersToAdd = selectedMembersWithDefault.filter(
@@ -187,6 +193,7 @@ export function ProjectsPage() {
           onClick={handleToggleForm}
           variant={showForm ? 'secondary' : 'primary'}
         >
+          {!showForm && <Plus className="h-4 w-4" aria-hidden />}
           {showForm ? 'Cancel' : 'New project'}
         </Button>
       </div>
@@ -231,6 +238,20 @@ export function ProjectsPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+            </label>
+            <label className="pp-label sm:max-w-xs">
+              Status
+              <select
+                className="pp-select text-sm"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                {projectStatuses.map((option) => (
+                  <option key={option} value={option}>
+                    {formatProjectStatus(option)}
+                  </option>
+                ))}
+              </select>
             </label>
           </section>
 
@@ -370,23 +391,32 @@ export function ProjectsPage() {
         {projects.map((project) => (
           <Card key={project.id} interactive className="group flex min-h-[15rem] flex-col p-5 sm:p-6">
             <Link to={`/projects/${project.id}`} className="flex flex-1 flex-col">
-              <div className="flex items-start justify-between gap-4">
-                <span className="pp-icon-tile text-lg font-black">
-                  {project.name.charAt(0).toUpperCase()}
-                </span>
-                <Badge tone="green">Active</Badge>
-              </div>
+              <ProjectIconTile projectId={project.id} />
               <div className="mt-5">
-                <h2 className="text-lg font-bold text-[#f8fafc] transition group-hover:text-[#fed7aa]">
-                  {project.name}
-                </h2>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-lg font-bold text-[#f8fafc] transition group-hover:text-[#fed7aa]">
+                    {project.name}
+                  </h2>
+                  <Badge tone={projectStatusTone(project.status)}>{formatProjectStatus(project.status)}</Badge>
+                </div>
                 <p className="mt-2 line-clamp-2 max-w-xl text-sm leading-6 text-[#a9b1c0]">
                   {project.description || 'No description'}
                 </p>
               </div>
-              <div className="mt-auto flex flex-wrap gap-4 pt-8 text-sm text-[#8e99ad]">
-                <span>{project.taskCount} tasks</span>
-                <span>{project.memberCount} members</span>
+              <div className="mt-auto flex items-center justify-between gap-4 pt-8">
+                <div className="flex flex-wrap gap-4 text-sm text-[#8e99ad]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <ListChecks className="h-4 w-4" aria-hidden />
+                    {project.taskCount} tasks
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Users className="h-4 w-4" aria-hidden />
+                    {project.memberCount} members
+                  </span>
+                </div>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.045] text-[#a9b1c0] transition group-hover:border-[#ff7b22]/45 group-hover:bg-[#ff7b22]/15 group-hover:text-[#fed7aa]">
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </span>
               </div>
             </Link>
             <div className="mt-5 flex justify-end border-t pp-divider pt-4">

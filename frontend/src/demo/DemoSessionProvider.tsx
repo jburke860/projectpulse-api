@@ -112,7 +112,6 @@ function DemoStartScreen({
 
   useEffect(() => {
     if (!isStarting) {
-      setShowSlowStartMessage(false)
       return
     }
 
@@ -120,7 +119,10 @@ function DemoStartScreen({
       setShowSlowStartMessage(true)
     }, SLOW_START_DELAY_MS)
 
-    return () => window.clearTimeout(timeoutId)
+    return () => {
+      window.clearTimeout(timeoutId)
+      setShowSlowStartMessage(false)
+    }
   }, [isStarting])
 
   return (

@@ -66,14 +66,19 @@ export function ActivityFeed({ items, emptyMessage = 'No activity yet.', compact
               onClick={() => setSelectedItem(item)}
               className={`pp-card pp-card-hover block w-full text-left ${compact ? 'p-3' : 'p-4'}`}
             >
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="orange">{actionLabel(item.action)}</Badge>
-                <span className="text-xs text-[#8e99ad]">{formatTime(item.createdAtUtc)}</span>
+              <div className="flex gap-3">
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#ff7b22] shadow-[0_0_8px_rgba(255,123,34,0.8)]" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge tone="orange">{actionLabel(item.action)}</Badge>
+                    <span className="text-xs text-[#8e99ad]">{formatTime(item.createdAtUtc)}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-medium leading-6 text-[#f8fafc]">{item.message}</p>
+                  <p className="mt-1 text-xs text-[#8e99ad]">
+                    {item.entityType} · by {item.actorName}
+                  </p>
+                </div>
               </div>
-              <p className="mt-2 text-sm font-medium leading-6 text-[#f8fafc]">{item.message}</p>
-              <p className="mt-1 text-xs text-[#8e99ad]">
-                {item.actorName} · {item.entityType}
-              </p>
             </button>
           </li>
         ))}

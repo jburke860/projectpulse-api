@@ -16,9 +16,12 @@ import {
   useTasks,
   useUsers,
 } from '../api/queries'
+import { ArrowLeft } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { ProjectIconTile } from '../components/ProjectIconTile'
 import { TaskPanel } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
+import { formatProjectStatus, projectStatusTone } from '../lib/projectStatus'
 
 const statusTones: Record<string, 'neutral' | 'orange' | 'yellow' | 'green' | 'red'> = {
   Open: 'neutral',
@@ -198,12 +201,17 @@ export function ProjectDetailPage() {
       <section className="pp-hero-card p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <Link to="/projects" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+            <Link
+              to="/projects"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
               Back to projects
             </Link>
             <div className="mt-3 flex flex-wrap items-center gap-3">
+              <ProjectIconTile projectId={project.id} />
               <h1 className="pp-title">{project.name}</h1>
-              <Badge tone="green">Active</Badge>
+              <Badge tone={projectStatusTone(project.status)}>{formatProjectStatus(project.status)}</Badge>
             </div>
             <p className="pp-subtitle mt-3 max-w-3xl">{project.description}</p>
           </div>

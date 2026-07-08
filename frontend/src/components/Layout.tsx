@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useDemoSession } from '../demo/DemoSessionContext'
 import { cn } from '../lib/cn'
@@ -49,6 +50,7 @@ export function Layout() {
               className="pp-button-secondary min-h-0 px-3 py-2"
             >
               API Docs
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
             <button
               type="button"
@@ -63,6 +65,30 @@ export function Layout() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
         <Outlet />
       </main>
+      <footer className="border-t border-white/10">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-[#8e99ad] sm:px-6">
+          <p>© {new Date().getFullYear()} ProjectPulse</p>
+          <nav className="flex flex-wrap items-center gap-5">
+            <a href={apiDocsUrl} target="_blank" rel="noreferrer" className="transition hover:text-[#f8fafc]">
+              API Docs
+            </a>
+            <a
+              href="https://github.com/jburke860/projectpulse-api"
+              target="_blank"
+              rel="noreferrer"
+              className="transition hover:text-[#f8fafc]"
+            >
+              GitHub
+            </a>
+            <NavLink to="/activity" className="transition hover:text-[#f8fafc]">
+              Activity
+            </NavLink>
+            <NavLink to="/projects" className="transition hover:text-[#f8fafc]">
+              Projects
+            </NavLink>
+          </nav>
+        </div>
+      </footer>
     </div>
   )
 }

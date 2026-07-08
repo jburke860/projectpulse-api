@@ -1,3 +1,14 @@
+import {
+  Activity,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  FolderKanban,
+  LayoutGrid,
+  SquareCheck,
+  Zap,
+} from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
@@ -43,11 +54,24 @@ export function DashboardPage() {
 
   return (
     <div className="pp-page-shell">
-      <section className="pp-hero-card p-6 sm:p-8">
-        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+      <section className="pp-hero-card relative overflow-hidden p-6 sm:p-8">
+        <svg
+          className="pointer-events-none absolute right-6 top-1/2 hidden h-24 w-56 -translate-y-1/2 text-[#ff7b22]/50 sm:block"
+          viewBox="0 0 220 90"
+          fill="none"
+          aria-hidden
+        >
+          <path
+            d="M2 78 C 40 76, 60 70, 92 58 S 150 40, 176 22 S 206 8, 218 4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">
-              Welcome back, Demo User!
+              Welcome back, Demo User! 👋
             </h1>
             <p className="mt-2 max-w-2xl text-[#cbd5e1]">
               Here's what's happening across your ProjectPulse workspace.
@@ -57,24 +81,32 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="hidden sm:flex">
-            <span className="pp-icon-tile h-16 w-16 text-xl font-black">PP</span>
+            <span className="pp-icon-tile h-16 w-16">
+              <LayoutGrid className="h-7 w-7" aria-hidden />
+            </span>
           </div>
         </div>
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total projects" value={data.totalProjects} hint="All time" accent="ember" />
-        <StatCard label="Open tasks" value={data.openTasks} hint="Needs attention" accent="amber" />
-        <StatCard label="Completed tasks" value={data.completedTasks} hint="All caught up" accent="sunset" />
-        <StatCard label="Overdue tasks" value={data.overdueTasks} hint="Past due" accent="rose" />
+        <StatCard label="Total projects" value={data.totalProjects} hint="All time" accent="ember" icon={FolderKanban} />
+        <StatCard label="Open tasks" value={data.openTasks} hint="Needs attention" accent="amber" icon={SquareCheck} />
+        <StatCard label="Completed tasks" value={data.completedTasks} hint="All caught up" accent="sunset" icon={CheckCircle2} />
+        <StatCard
+          label="Overdue tasks"
+          value={data.overdueTasks}
+          hint={data.overdueTasks === 0 ? 'Great job!' : 'Past due'}
+          accent="rose"
+          icon={Clock}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="pp-eyebrow">Latest</p>
-              <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Recent activity</h2>
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+              <h2 className="text-lg font-bold text-[#f8fafc]">Recent activity</h2>
             </div>
             <Link to="/activity" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
               View all
@@ -84,9 +116,11 @@ export function DashboardPage() {
         </Card>
 
         <Card className="p-5 sm:p-6">
-          <p className="pp-eyebrow">Guide</p>
-          <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Quick start</h2>
-          <p className="mt-2 text-sm text-[#a9b1c0]">Explore the seeded workspace in a few focused steps.</p>
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+            <h2 className="text-lg font-bold text-[#f8fafc]">Quick start</h2>
+          </div>
+          <p className="mt-2 text-sm text-[#a9b1c0]">Get up and running in minutes.</p>
           <ul className="mt-5 space-y-4 text-sm text-[#cbd5e1]">
             {[
               ['Browse projects', 'Review the workspace portfolio and task volume.'],
@@ -111,6 +145,7 @@ export function DashboardPage() {
               className="pp-button-primary"
             >
               View projects
+              <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             <a
               href={apiDocsUrl}
@@ -119,6 +154,7 @@ export function DashboardPage() {
               className="pp-button-secondary"
             >
               API Docs
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
           </div>
         </Card>

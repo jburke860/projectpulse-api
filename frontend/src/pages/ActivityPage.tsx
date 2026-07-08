@@ -12,7 +12,7 @@ export function ActivityPage() {
     <div className="pp-page-shell">
       <PageHeader
         eyebrow="Workspace"
-        title="Activity log"
+        title="Activity"
         description="Audit history for tasks, assignments, project changes, and comments."
       />
       <Card className="p-5 sm:p-6">

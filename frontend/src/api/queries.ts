@@ -5,12 +5,18 @@ import type {
   Comment,
   Dashboard,
   DemoSession,
+  PagedResult,
   Project,
   ProjectMember,
   ProjectSummary,
   Task,
   User,
 } from './types'
+
+async function getPagedItems<T>(url: string) {
+  const result = await getData<PagedResult<T>>(url)
+  return result.items
+}
 
 export const queryKeys = {
   dashboard: ['dashboard'] as const,
@@ -40,7 +46,7 @@ export function useDashboard() {
 export function useProjects() {
   return useQuery({
     queryKey: queryKeys.projects,
-    queryFn: () => getData<Project[]>('/api/projects'),
+    queryFn: () => getPagedItems<Project>('/api/projects?pageSize=100'),
   })
 }
 
@@ -77,10 +83,10 @@ export function useProjectActivity(id: string) {
 }
 
 export function useTasks(projectId?: string) {
-  const params = projectId ? `?projectId=${projectId}` : ''
+  const params = projectId ? `?projectId=${projectId}&pageSize=100` : '?pageSize=100'
   return useQuery({
     queryKey: queryKeys.tasks(projectId),
-    queryFn: () => getData<Task[]>(`/api/tasks${params}`),
+    queryFn: () => getPagedItems<Task>(`/api/tasks${params}`),
   })
 }
 
@@ -103,14 +109,14 @@ export function useTaskComments(id: string | null) {
 export function useActivity() {
   return useQuery({
     queryKey: queryKeys.activity,
-    queryFn: () => getData<AuditLog[]>('/api/activity?limit=100'),
+    queryFn: () => getPagedItems<AuditLog>('/api/activity?pageSize=100'),
   })
 }
 
 export function useUsers() {
   return useQuery({
     queryKey: queryKeys.users,
-    queryFn: () => getData<User[]>('/api/users'),
+    queryFn: () => getPagedItems<User>('/api/users?pageSize=100'),
   })
 }
 
@@ -148,7 +154,7 @@ function updateTaskCaches(
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; description?: string }) =>
+    mutationFn: (body: { name: string; description?: string; status?: string }) =>
       postData<Project>('/api/projects', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })

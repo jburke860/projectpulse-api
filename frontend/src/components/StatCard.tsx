@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '../lib/cn'
 
 interface StatCardProps {
@@ -5,6 +6,7 @@ interface StatCardProps {
   value: number | string
   hint?: string
   accent?: 'ember' | 'amber' | 'sunset' | 'rose'
+  icon: LucideIcon
 }
 
 const accents = {
@@ -26,14 +28,7 @@ const accents = {
   },
 }
 
-const symbols = {
-  ember: 'P',
-  amber: 'T',
-  sunset: 'C',
-  rose: '!',
-}
-
-export function StatCard({ label, value, hint, accent = 'ember' }: StatCardProps) {
+export function StatCard({ label, value, hint, accent = 'ember', icon: Icon }: StatCardProps) {
   return (
     <div className="pp-card p-5">
       <div className="flex items-start justify-between gap-4">
@@ -41,8 +36,8 @@ export function StatCard({ label, value, hint, accent = 'ember' }: StatCardProps
           <p className="text-sm font-medium text-[#a9b1c0]">{label}</p>
           <p className="mt-2 text-3xl font-bold text-[#f8fafc]">{value}</p>
         </div>
-        <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-sm font-black', accents[accent].icon)}>
-          {symbols[accent]}
+        <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl', accents[accent].icon)}>
+          <Icon className="h-5 w-5" aria-hidden />
         </span>
       </div>
       <div className="mt-4 flex items-center gap-2">
