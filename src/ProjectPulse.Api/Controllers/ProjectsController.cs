@@ -16,10 +16,13 @@ public class ProjectsController : ControllerBase
     public ProjectsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
-    public async Task<ActionResult<ApiResult<IReadOnlyList<ProjectDto>>>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResult<PagedResult<ProjectDto>>>> List(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetProjectsQuery(), cancellationToken);
-        return Ok(ApiResult<IReadOnlyList<ProjectDto>>.Ok(result));
+        var result = await _mediator.Send(new GetProjectsQuery(page, pageSize), cancellationToken);
+        return Ok(ApiResult<PagedResult<ProjectDto>>.Ok(result));
     }
 
     [HttpPost]

@@ -2,13 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
+using ProjectPulse.Application.Common.Models;
 using ProjectPulse.Application.Projects.Dtos;
 
 namespace ProjectPulse.Application.Projects.Queries;
 
-public record GetProjectsQuery : IRequest<IReadOnlyList<ProjectDto>>;
+public record GetProjectsQuery(int? Page = null, int? PageSize = null) : IRequest<PagedResult<ProjectDto>>;
 
-public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, IReadOnlyList<ProjectDto>>
+public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, PagedResult<ProjectDto>>
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
@@ -19,10 +20,18 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, IReadOn
         _currentUser = currentUser;
     }
 
-    public async Task<IReadOnlyList<ProjectDto>> Handle(GetProjectsQuery query, CancellationToken cancellationToken) =>
-        await _db.Projects.AsNoTracking()
-            .VisibleTo(_currentUser.UserId)
+    public async Task<PagedResult<ProjectDto>> Handle(GetProjectsQuery query, CancellationToken cancellationToken)
+    {
+        var projects = _db.Projects.AsNoTracking()
+            .VisibleTo(_currentUser.UserId);
+
+        var (page, pageSize) = Paging.Clamp(query.Page, query.PageSize);
+        var totalCount = await projects.CountAsync(cancellationToken);
+
+        var items = await projects
             .OrderByDescending(p => p.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new ProjectDto(
                 p.Id,
                 p.Name,
@@ -32,4 +41,7 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, IReadOn
                 p.Members.Count,
                 p.Tasks.Count))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProjectDto>(items, totalCount, page, pageSize);
+    }
 }

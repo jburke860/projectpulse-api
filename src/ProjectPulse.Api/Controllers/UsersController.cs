@@ -15,9 +15,12 @@ public class UsersController : ControllerBase
     public UsersController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet]
-    public async Task<ActionResult<ApiResult<IReadOnlyList<UserDto>>>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResult<PagedResult<UserDto>>>> List(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetUsersQuery(), cancellationToken);
-        return Ok(ApiResult<IReadOnlyList<UserDto>>.Ok(result));
+        var result = await _mediator.Send(new GetUsersQuery(page, pageSize), cancellationToken);
+        return Ok(ApiResult<PagedResult<UserDto>>.Ok(result));
     }
 }

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
+using ProjectPulse.Application.Common.Models;
 using ProjectPulse.Application.Tasks.Dtos;
 using ProjectPulse.Application.Tasks.Commands;
 using ProjectPulse.Domain.Enums;
@@ -15,9 +16,11 @@ public record GetTasksQuery(
     string? Status,
     string? Priority,
     Guid? AssigneeId,
-    DateTime? DueBeforeUtc) : IRequest<IReadOnlyList<TaskDto>>;
+    DateTime? DueBeforeUtc,
+    int? Page = null,
+    int? PageSize = null) : IRequest<PagedResult<TaskDto>>;
 
-public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList<TaskDto>>
+public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, PagedResult<TaskDto>>
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
@@ -28,7 +31,7 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList
         _currentUser = currentUser;
     }
 
-    public async Task<IReadOnlyList<TaskDto>> Handle(GetTasksQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<TaskDto>> Handle(GetTasksQuery query, CancellationToken cancellationToken)
     {
         var tasks = _db.Tasks.AsNoTracking()
             .Include(t => t.Assignee)
@@ -59,8 +62,13 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList
             tasks = tasks.Where(t => t.DueDateUtc != null && t.DueDateUtc <= query.DueBeforeUtc);
         }
 
-        return await tasks
+        var (page, pageSize) = Paging.Clamp(query.Page, query.PageSize);
+        var totalCount = await tasks.CountAsync(cancellationToken);
+
+        var items = await tasks
             .OrderByDescending(t => t.CreatedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(t => new TaskDto(
                 t.Id,
                 t.ProjectId,
@@ -77,5 +85,7 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList
                     .Select(tl => new LabelDto(tl.LabelId, tl.Label.Name, tl.Label.Color))
                     .ToList()))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<TaskDto>(items, totalCount, page, pageSize);
     }
 }

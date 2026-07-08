@@ -44,16 +44,18 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResult<IReadOnlyList<TaskDto>>>> List(
+    public async Task<ActionResult<ApiResult<PagedResult<TaskDto>>>> List(
         [FromQuery] Guid? projectId,
         [FromQuery] string? status,
         [FromQuery] string? priority,
         [FromQuery] Guid? assigneeId,
         [FromQuery] DateTime? dueBeforeUtc,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken cancellationToken)
     {
-        var result = await _mediator.Send(new GetTasksQuery(projectId, status, priority, assigneeId, dueBeforeUtc), cancellationToken);
-        return Ok(ApiResult<IReadOnlyList<TaskDto>>.Ok(result));
+        var result = await _mediator.Send(new GetTasksQuery(projectId, status, priority, assigneeId, dueBeforeUtc, page, pageSize), cancellationToken);
+        return Ok(ApiResult<PagedResult<TaskDto>>.Ok(result));
     }
 
     [HttpPatch("{id:guid}/status")]
