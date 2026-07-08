@@ -12,6 +12,7 @@ public class Project : BaseEntity
     public ICollection<ProjectMember> Members { get; private set; } = [];
     public ICollection<TaskItem> Tasks { get; private set; } = [];
     public ICollection<Label> Labels { get; private set; } = [];
+    public ICollection<Attachment> Attachments { get; private set; } = [];
     public ICollection<AuditLog> AuditLogs { get; private set; } = [];
 
     private Project()

@@ -85,6 +85,8 @@ export async function downloadFile(url: string, fileName: string) {
   const anchor = document.createElement('a')
   anchor.href = objectUrl
   anchor.download = fileName
+  document.body.appendChild(anchor)
   anchor.click()
-  URL.revokeObjectURL(objectUrl)
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
 }

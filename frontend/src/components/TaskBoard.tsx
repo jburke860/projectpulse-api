@@ -8,6 +8,7 @@ import {
   useSensors,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import { Paperclip } from 'lucide-react'
 import { useBoardStatusChange } from '../api/queries'
 import type { Task } from '../api/types'
 import { canTransition, formatTaskStatus } from '../lib/tasks'
@@ -177,6 +178,13 @@ function DraggableBoardCard({ task, onSelectTask }: { task: Task; onSelectTask: 
 }
 
 function BoardCard({ task, isOverlay }: { task: Task; isOverlay?: boolean }) {
+  const fileSummary =
+    task.attachmentCount === 1
+      ? task.attachmentFileNames[0] ?? '1 file attached'
+      : task.attachmentCount > 1
+        ? `${task.attachmentCount} files attached`
+        : null
+
   return (
     <div className={cn('pp-card p-3', isOverlay && 'rotate-2 shadow-2xl')}>
       <p className="text-sm font-semibold leading-5 text-[#f8fafc]">{task.title}</p>
@@ -188,6 +196,12 @@ function BoardCard({ task, isOverlay }: { task: Task; isOverlay?: boolean }) {
           <LabelChip key={label.id} label={label} />
         ))}
       </div>
+      {fileSummary && (
+        <p className="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-[#ffb36c]">
+          <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{fileSummary}</span>
+        </p>
+      )}
       <p className="mt-2 truncate text-xs text-[#8e99ad]">{task.assigneeName ?? 'Unassigned'}</p>
     </div>
   )

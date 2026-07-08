@@ -36,6 +36,9 @@ namespace ProjectPulse.Infrastructure.Persistence.Migrations
                         .HasMaxLength(260)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("SizeBytes")
                         .HasColumnType("INTEGER");
 
@@ -44,7 +47,7 @@ namespace ProjectPulse.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("TaskId")
+                    b.Property<Guid?>("TaskId")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
@@ -52,9 +55,14 @@ namespace ProjectPulse.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProjectId");
+
                     b.HasIndex("TaskId");
 
-                    b.ToTable("Attachments");
+                    b.ToTable("Attachments", t =>
+                        {
+                            t.HasCheckConstraint("CK_Attachments_OneOwner", "(TaskId IS NOT NULL AND ProjectId IS NULL) OR (TaskId IS NULL AND ProjectId IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ProjectPulse.Domain.Entities.AuditLog", b =>
@@ -317,11 +325,17 @@ namespace ProjectPulse.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ProjectPulse.Domain.Entities.Attachment", b =>
                 {
+                    b.HasOne("ProjectPulse.Domain.Entities.Project", "Project")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("ProjectPulse.Domain.Entities.TaskItem", "Task")
                         .WithMany("Attachments")
                         .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Project");
 
                     b.Navigation("Task");
                 });
@@ -437,6 +451,8 @@ namespace ProjectPulse.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ProjectPulse.Domain.Entities.Project", b =>
                 {
+                    b.Navigation("Attachments");
+
                     b.Navigation("AuditLogs");
 
                     b.Navigation("Labels");

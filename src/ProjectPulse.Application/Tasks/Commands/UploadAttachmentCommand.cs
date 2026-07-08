@@ -79,7 +79,7 @@ public class UploadAttachmentCommandHandler : IRequestHandler<UploadAttachmentCo
             $"Attachment '{safeFileName}' uploaded to task '{task.Title}'.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new AttachmentDto(attachment.Id, attachment.TaskId, attachment.FileName, attachment.ContentType,
+        return new AttachmentDto(attachment.Id, attachment.TaskId, attachment.ProjectId, attachment.FileName, attachment.ContentType,
             attachment.SizeBytes, attachment.CreatedAtUtc);
     }
 }

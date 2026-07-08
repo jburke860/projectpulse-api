@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Download, Paperclip, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Task } from '../api/types'
 import {
   useAddComment,
@@ -61,8 +62,8 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
   const addComment = useAddComment(taskId, projectId)
   const attachLabel = useAttachLabel(taskId, projectId)
   const detachLabel = useDetachLabel(taskId, projectId)
-  const uploadAttachment = useUploadAttachment(taskId)
-  const deleteAttachment = useDeleteAttachment(taskId)
+  const uploadAttachment = useUploadAttachment(taskId, projectId)
+  const deleteAttachment = useDeleteAttachment(taskId, projectId)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const attachedLabelIds = new Set(task.labels.map((label) => label.id))
@@ -276,12 +277,12 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
                     type="button"
                     aria-label={`Download ${attachment.fileName}`}
                     className="pp-button-ghost min-h-0 p-1.5"
-                    onClick={() =>
+                    onClick={() => {
                       downloadFile(
                         `/api/tasks/${taskId}/attachments/${attachment.id}/download`,
                         attachment.fileName,
-                      )
-                    }
+                      ).catch(() => toast.error(`Could not download "${attachment.fileName}".`))
+                    }}
                   >
                     <Download className="h-4 w-4" aria-hidden />
                   </button>

@@ -4,8 +4,10 @@ namespace ProjectPulse.Domain.Entities;
 
 public class Attachment : BaseEntity
 {
-    public Guid TaskId { get; private set; }
-    public TaskItem Task { get; private set; } = null!;
+    public Guid? TaskId { get; private set; }
+    public TaskItem? Task { get; private set; }
+    public Guid? ProjectId { get; private set; }
+    public Project? Project { get; private set; }
     public string FileName { get; private set; } = string.Empty;
     public string ContentType { get; private set; } = string.Empty;
     public long SizeBytes { get; private set; }
@@ -22,5 +24,17 @@ public class Attachment : BaseEntity
         ContentType = contentType;
         SizeBytes = sizeBytes;
         StorageKey = storageKey;
+    }
+
+    public static Attachment ForProject(Guid projectId, string fileName, string contentType, long sizeBytes, string storageKey)
+    {
+        return new Attachment
+        {
+            ProjectId = projectId,
+            FileName = fileName,
+            ContentType = contentType,
+            SizeBytes = sizeBytes,
+            StorageKey = storageKey
+        };
     }
 }

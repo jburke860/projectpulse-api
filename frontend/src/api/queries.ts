@@ -36,6 +36,7 @@ export const queryKeys = {
   projectMembers: (id: string) => ['projectMembers', id] as const,
   projectActivity: (id: string) => ['projectActivity', id] as const,
   projectLabels: (id: string) => ['projectLabels', id] as const,
+  projectAttachments: (id: string) => ['projectAttachments', id] as const,
   tasks: (projectId?: string, filters?: TaskFilters) =>
     filters && Object.values(filters).some(Boolean)
       ? (['tasks', projectId ?? 'all', filters] as const)
@@ -114,6 +115,14 @@ export function useProjectLabels(projectId: string) {
   return useQuery({
     queryKey: queryKeys.projectLabels(projectId),
     queryFn: () => getData<Label[]>(`/api/projects/${projectId}/labels`),
+    enabled: !!projectId,
+  })
+}
+
+export function useProjectAttachments(projectId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.projectAttachments(projectId ?? ''),
+    queryFn: () => getData<Attachment[]>(`/api/projects/${projectId}/attachments`),
     enabled: !!projectId,
   })
 }
@@ -240,6 +249,12 @@ export function addProjectMember(projectId: string, body: { userId: string; role
   return postData<Record<string, never>>(`/api/projects/${projectId}/members`, body)
 }
 
+export function uploadProjectAttachment(projectId: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return postFormData<Attachment>(`/api/projects/${projectId}/attachments`, formData)
+}
+
 export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -255,6 +270,7 @@ export function useDeleteProject() {
       queryClient.removeQueries({ queryKey: queryKeys.projectSummary(projectId) })
       queryClient.removeQueries({ queryKey: queryKeys.projectMembers(projectId) })
       queryClient.removeQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      queryClient.removeQueries({ queryKey: queryKeys.projectAttachments(projectId) })
       queryClient.removeQueries({ queryKey: queryKeys.tasks(projectId) })
     },
   })
@@ -315,6 +331,10 @@ export function useCreateTask(projectId: string) {
   })
 }
 
+export function attachTaskLabel(taskId: string, labelId: string) {
+  return postData<Task>(`/api/tasks/${taskId}/labels`, { labelId })
+}
+
 export function changeTaskStatus(taskId: string, status: string) {
   return patchData<Task>(`/api/tasks/${taskId}/status`, { status })
 }
@@ -338,7 +358,7 @@ export function useUpdateProject(projectId: string) {
 export function useAttachLabel(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (labelId: string) => postData<Task>(`/api/tasks/${taskId}/labels`, { labelId }),
+    mutationFn: (labelId: string) => attachTaskLabel(taskId, labelId),
     onError: toastMutationError,
     onSuccess: (task) => {
       toast.success('Label added.')
@@ -361,7 +381,7 @@ export function useDetachLabel(taskId: string, projectId: string) {
   })
 }
 
-export function useUploadAttachment(taskId: string) {
+export function useUploadAttachment(taskId: string, projectId?: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (file: File) => {
@@ -373,12 +393,47 @@ export function useUploadAttachment(taskId: string) {
     onSuccess: (attachment) => {
       toast.success(`"${attachment.fileName}" uploaded.`)
       queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks() })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity })
     },
   })
 }
 
-export function useDeleteAttachment(taskId: string) {
+export function useUploadProjectAttachment(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => uploadProjectAttachment(projectId, file),
+    onError: toastMutationError,
+    onSuccess: (attachment) => {
+      toast.success(`"${attachment.fileName}" uploaded.`)
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectAttachments(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+    },
+  })
+}
+
+export function useDeleteProjectAttachment(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (attachmentId: string) =>
+      deleteData<Record<string, never>>(`/api/projects/${projectId}/attachments/${attachmentId}`),
+    onError: toastMutationError,
+    onSuccess: () => {
+      toast.success('Attachment deleted.')
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectAttachments(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+    },
+  })
+}
+
+export function useDeleteAttachment(taskId: string, projectId?: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (attachmentId: string) =>
@@ -387,6 +442,12 @@ export function useDeleteAttachment(taskId: string) {
     onSuccess: () => {
       toast.success('Attachment deleted.')
       queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.task(taskId) })
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) })
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks() })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity })
     },
   })

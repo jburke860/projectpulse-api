@@ -4,6 +4,7 @@ using ProjectPulse.Application.Common.Models;
 using ProjectPulse.Application.Projects.Commands;
 using ProjectPulse.Application.Projects.Dtos;
 using ProjectPulse.Application.Projects.Queries;
+using ProjectPulse.Application.Tasks.Dtos;
 
 namespace ProjectPulse.Api.Controllers;
 
@@ -79,6 +80,42 @@ public class ProjectsController : ControllerBase
     {
         var result = await _mediator.Send(new GetProjectLabelsQuery(id), cancellationToken);
         return Ok(ApiResult<object>.Ok(result));
+    }
+
+    [HttpGet("{id:guid}/attachments")]
+    public async Task<ActionResult<ApiResult<IReadOnlyList<AttachmentDto>>>> GetAttachments(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetProjectAttachmentsQuery(id), cancellationToken);
+        return Ok(ApiResult<IReadOnlyList<AttachmentDto>>.Ok(result));
+    }
+
+    [HttpPost("{id:guid}/attachments")]
+    [RequestSizeLimit(5_242_880)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 5_242_880)]
+    public async Task<ActionResult<ApiResult<AttachmentDto>>> UploadAttachment(Guid id, IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null)
+        {
+            return BadRequest(ApiResult<AttachmentDto>.Fail(["Attach a file using the 'file' form field."], "Validation failed"));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(new UploadProjectAttachmentCommand(id, file.FileName, file.ContentType, file.Length, stream), cancellationToken);
+        return Ok(ApiResult<AttachmentDto>.Ok(result, "Attachment uploaded."));
+    }
+
+    [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DownloadProjectAttachmentQuery(id, attachmentId), cancellationToken);
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+
+    [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
+    public async Task<ActionResult<ApiResult<object>>> DeleteAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteProjectAttachmentCommand(id, attachmentId), cancellationToken);
+        return Ok(ApiResult<object>.Ok(new { }, "Attachment deleted."));
     }
 
     [HttpGet("{id:guid}/activity")]

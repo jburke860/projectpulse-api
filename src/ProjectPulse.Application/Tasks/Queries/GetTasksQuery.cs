@@ -83,6 +83,11 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, PagedResult<T
                 t.TaskLabels
                     .OrderBy(tl => tl.Label.Name)
                     .Select(tl => new LabelDto(tl.LabelId, tl.Label.Name, tl.Label.Color))
+                    .ToList(),
+                t.Attachments.Count,
+                t.Attachments
+                    .OrderByDescending(a => a.CreatedAtUtc)
+                    .Select(a => a.FileName)
                     .ToList()))
             .ToListAsync(cancellationToken);
 

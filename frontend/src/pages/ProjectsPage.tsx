@@ -1,8 +1,16 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, FolderPlus, ListChecks, Plus, Users } from 'lucide-react'
+import { ArrowRight, FolderPlus, ListChecks, Paperclip, Plus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { addProjectMember, queryKeys, useCreateProject, useDeleteProject, useProjects, useUsers } from '../api/queries'
+import {
+  addProjectMember,
+  queryKeys,
+  uploadProjectAttachment,
+  useCreateProject,
+  useDeleteProject,
+  useProjects,
+  useUsers,
+} from '../api/queries'
 import type { User } from '../api/types'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EmptyState } from '../components/EmptyState'
@@ -35,10 +43,12 @@ export function ProjectsPage() {
   const [status, setStatus] = useState('Active')
   const [showForm, setShowForm] = useState(false)
   const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([])
+  const [projectFiles, setProjectFiles] = useState<File[]>([])
   const [memberUserId, setMemberUserId] = useState('')
   const [memberRole, setMemberRole] = useState<ProjectRole>('Member')
   const [formError, setFormError] = useState<string | null>(null)
   const [isAddingMembers, setIsAddingMembers] = useState(false)
+  const [isFinalizingProject, setIsFinalizingProject] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null)
 
   const defaultDemoAdmin = useMemo(() => findDefaultDemoAdmin(users), [users])
@@ -63,7 +73,7 @@ export function ProjectsPage() {
     .filter((member): member is SelectedMember & { user: User } => Boolean(member.user))
   const availableUsers = users.filter((user) => !selectedMemberIds.has(user.id))
   const adminCount = selectedMembersWithDefault.filter((member) => member.role === 'Admin').length
-  const isSubmittingProject = createProject.isPending || isAddingMembers
+  const isSubmittingProject = createProject.isPending || isAddingMembers || isFinalizingProject
   const canCreateProject = name.trim().length > 0 && adminCount > 0 && !isSubmittingProject
 
   const resetForm = () => {
@@ -74,6 +84,7 @@ export function ProjectsPage() {
     setMemberRole('Member')
     setFormError(null)
     setSelectedMembers([])
+    setProjectFiles([])
   }
 
   const handleToggleForm = () => {
@@ -123,6 +134,7 @@ export function ProjectsPage() {
         description: description.trim() || undefined,
         status,
       })
+      setIsFinalizingProject(true)
 
       const membersToAdd = selectedMembersWithDefault.filter(
         (member) => member.userId !== defaultDemoAdmin?.id,
@@ -137,14 +149,21 @@ export function ProjectsPage() {
         )
       }
 
+      for (const file of projectFiles) {
+        await uploadProjectAttachment(project.id, file)
+      }
+
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projectAttachments(project.id) })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(project.id) })
       setShowForm(false)
       resetForm()
     } catch (mutationError) {
       setFormError(getMutationErrorMessage(mutationError))
     } finally {
       setIsAddingMembers(false)
+      setIsFinalizingProject(false)
     }
   }
 
@@ -330,6 +349,46 @@ export function ProjectsPage() {
                 )
               })}
             </ul>
+          </section>
+
+          <section className="space-y-3 border-t pp-divider pt-5">
+            <div>
+              <p className="pp-eyebrow">Step 3</p>
+              <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Project files</h3>
+            </div>
+            <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
+              <label className="pp-button-secondary cursor-pointer">
+                <Paperclip className="h-4 w-4" aria-hidden />
+                Choose files
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.md,.csv,.json,.xlsx,.docx,.zip"
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.files ?? [])
+                    setProjectFiles((files) => [...files, ...selected])
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+              {projectFiles.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {projectFiles.map((file, index) => (
+                    <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2 text-sm text-[#cbd5e1]">
+                      <span className="truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        className="pp-button-ghost min-h-0 px-2 py-0.5 text-xs"
+                        onClick={() => setProjectFiles((files) => files.filter((_, i) => i !== index))}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </section>
 
           <div className="flex flex-wrap justify-end gap-3 border-t pp-divider pt-5">

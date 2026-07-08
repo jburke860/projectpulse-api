@@ -55,7 +55,8 @@ export interface Label {
 
 export interface Attachment {
   id: string
-  taskId: string
+  taskId: string | null
+  projectId: string | null
   fileName: string
   contentType: string
   sizeBytes: number
@@ -74,6 +75,8 @@ export interface Task {
   assigneeName: string | null
   createdAtUtc: string
   labels: Label[]
+  attachmentCount: number
+  attachmentFileNames: string[]
 }
 
 export interface Comment {

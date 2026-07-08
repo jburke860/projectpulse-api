@@ -94,5 +94,10 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
                 .Where(tl => tl.Label != null)
                 .Select(tl => new LabelDto(tl.LabelId, tl.Label.Name, tl.Label.Color))
                 .OrderBy(l => l.Name)
+                .ToList(),
+            task.Attachments.Count,
+            task.Attachments
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .Select(a => a.FileName)
                 .ToList());
 }

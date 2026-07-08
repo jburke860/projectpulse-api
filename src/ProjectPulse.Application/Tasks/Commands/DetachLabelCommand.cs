@@ -29,6 +29,7 @@ public class DetachLabelCommandHandler : IRequestHandler<DetachLabelCommand, Tas
         var task = await _db.Tasks
             .Include(t => t.Assignee)
             .Include(t => t.TaskLabels).ThenInclude(tl => tl.Label)
+            .Include(t => t.Attachments)
             .FirstOrDefaultAsync(t => t.Id == command.TaskId, cancellationToken)
             ?? throw new NotFoundException($"Task {command.TaskId} was not found.");
 

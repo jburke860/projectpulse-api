@@ -4,11 +4,14 @@ public record LabelDto(Guid Id, string Name, string Color);
 
 public record AttachmentDto(
     Guid Id,
-    Guid TaskId,
+    Guid? TaskId,
+    Guid? ProjectId,
     string FileName,
     string ContentType,
     long SizeBytes,
     DateTime CreatedAtUtc);
+
+public record AttachmentDownloadDto(string FileName, string ContentType, Stream Content);
 
 public record TaskDto(
     Guid Id,
@@ -21,7 +24,9 @@ public record TaskDto(
     Guid? AssigneeId,
     string? AssigneeName,
     DateTime CreatedAtUtc,
-    IReadOnlyList<LabelDto> Labels);
+    IReadOnlyList<LabelDto> Labels,
+    int AttachmentCount,
+    IReadOnlyList<string> AttachmentFileNames);
 
 public record CreateTaskRequest(
     Guid ProjectId,

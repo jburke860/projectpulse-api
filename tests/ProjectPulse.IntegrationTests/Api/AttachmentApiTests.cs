@@ -27,6 +27,16 @@ public class AttachmentApiTests : IntegrationTestBase
             .FirstAsync();
     }
 
+    private async Task<Guid> GetSharedWorkspaceProjectId()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await db.Projects
+            .Where(p => p.Members.Any(m => m.UserId == SeedData.DemoAdminUserId))
+            .Select(p => p.Id)
+            .FirstAsync();
+    }
+
     private static MultipartFormDataContent FileContent(byte[] bytes, string fileName, string contentType)
     {
         var content = new ByteArrayContent(bytes);
@@ -112,19 +122,55 @@ public class AttachmentApiTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Download_SeededAttachmentWithoutFile_ReturnsNotFound()
+    public async Task Download_SeededAttachmentWithoutFile_ReturnsGeneratedContent()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var seeded = await db.Attachments
             .Where(a =>
                 a.StorageKey.StartsWith("demo/") &&
-                a.Task.Project.Members.Any(m => m.UserId == SeedData.DemoAdminUserId))
-            .Select(a => new { a.Id, a.TaskId })
+                a.TaskId != null &&
+                a.Task!.Project.Members.Any(m => m.UserId == SeedData.DemoAdminUserId))
+            .Select(a => new { a.Id, TaskId = a.TaskId!.Value })
             .FirstAsync();
 
         var response = await Client.GetAsync($"/api/tasks/{seeded.TaskId}/attachments/{seeded.Id}/download");
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.Content.ReadAsByteArrayAsync()).Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ProjectAttachments_UploadDownloadDelete_RoundTrips()
+    {
+        var projectId = await GetSharedWorkspaceProjectId();
+        var contentBytes = "Launch brief\nOwner,Status\nJeremy Burke,Ready\n"u8.ToArray();
+
+        var uploadResponse = await Client.PostAsync(
+            $"/api/projects/{projectId}/attachments",
+            FileContent(contentBytes, "launch-brief.csv", "text/csv"));
+        uploadResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var uploaded = await uploadResponse.Content.ReadFromJsonAsync<ApiResult<AttachmentDto>>();
+        uploaded!.Data!.ProjectId.Should().Be(projectId);
+        uploaded.Data.TaskId.Should().BeNull();
+        uploaded.Data.FileName.Should().Be("launch-brief.csv");
+
+        var listResponse = await Client.GetAsync($"/api/projects/{projectId}/attachments");
+        var list = await listResponse.Content.ReadFromJsonAsync<ApiResult<List<AttachmentDto>>>();
+        list!.Data.Should().Contain(a => a.Id == uploaded.Data.Id);
+
+        var downloadResponse = await Client.GetAsync(
+            $"/api/projects/{projectId}/attachments/{uploaded.Data.Id}/download");
+        downloadResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await downloadResponse.Content.ReadAsByteArrayAsync()).Should().Equal(contentBytes);
+
+        var deleteResponse = await Client.DeleteAsync(
+            $"/api/projects/{projectId}/attachments/{uploaded.Data.Id}");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var downloadAfterDelete = await Client.GetAsync(
+            $"/api/projects/{projectId}/attachments/{uploaded.Data.Id}/download");
+        downloadAfterDelete.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]

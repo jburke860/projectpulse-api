@@ -25,7 +25,9 @@ public static class WorkspaceQueryExtensions
         labels.Where(l => l.Project.Members.Any(m => m.UserId == userId));
 
     public static IQueryable<Attachment> VisibleTo(this IQueryable<Attachment> attachments, Guid userId) =>
-        attachments.Where(a => a.Task.Project.Members.Any(m => m.UserId == userId));
+        attachments.Where(a =>
+            (a.TaskId != null && a.Task!.Project.Members.Any(m => m.UserId == userId)) ||
+            (a.ProjectId != null && a.Project!.Members.Any(m => m.UserId == userId)));
 
     public static IQueryable<User> VisibleTo(this IQueryable<User> users, Guid userId)
     {

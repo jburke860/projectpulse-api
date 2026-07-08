@@ -1,25 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import {
   addTaskComment,
+  attachTaskLabel,
   changeTaskStatus,
   queryKeys,
   uploadTaskAttachment,
   useAddProjectMember,
   useCreateTask,
+  useDeleteProjectAttachment,
   useDeleteProject,
   useProject,
+  useProjectAttachments,
   useProjectActivity,
+  useProjectLabels,
   useProjectMembers,
   useProjectSummary,
   useRemoveProjectMember,
   useTasks,
   useUpdateProject,
+  useUploadProjectAttachment,
   useUsers,
   type TaskFilters,
 } from '../api/queries'
-import { ArrowLeft, Columns3, List, Search } from 'lucide-react'
+import { ArrowLeft, Columns3, Download, List, Paperclip, Search, Trash2 } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { LabelChip } from '../components/LabelChip'
@@ -32,6 +38,7 @@ import { getMutationErrorMessage } from '../lib/errors'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
 import { isAssignableMember, projectRoles } from '../lib/roles'
 import { formatTaskStatus, taskPriorities, taskStatuses, taskStatusTones } from '../lib/tasks'
+import { downloadFile } from '../api/client'
 const initialStatusTransitions: Record<string, string[]> = {
   Open: [],
   InProgress: ['InProgress'],
@@ -52,6 +59,18 @@ function formatDueDate(date: string | null) {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(date))
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatTaskFileSummary(task: { attachmentCount: number; attachmentFileNames: string[] }) {
+  if (task.attachmentCount === 0) return null
+  if (task.attachmentCount === 1) return task.attachmentFileNames[0] ?? '1 file attached'
+  return `${task.attachmentCount} files attached`
 }
 
 export function ProjectDetailPage() {
@@ -77,11 +96,15 @@ export function ProjectDetailPage() {
   const { data: users = [] } = useUsers()
   const { data: tasks = [] } = useTasks(id, taskFilters)
   const { data: activity = [] } = useProjectActivity(id)
+  const { data: projectLabels = [] } = useProjectLabels(id)
+  const { data: projectAttachments = [] } = useProjectAttachments(id)
   const createTask = useCreateTask(id)
   const deleteProject = useDeleteProject()
   const updateProject = useUpdateProject(id)
   const addMember = useAddProjectMember(id)
   const removeMember = useRemoveProjectMember(id)
+  const uploadProjectAttachment = useUploadProjectAttachment(id)
+  const deleteProjectAttachment = useDeleteProjectAttachment(id)
 
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [taskTitle, setTaskTitle] = useState('')
@@ -90,6 +113,7 @@ export function ProjectDetailPage() {
   const [taskStatus, setTaskStatus] = useState('Open')
   const [taskDueDate, setTaskDueDate] = useState('')
   const [taskAssigneeId, setTaskAssigneeId] = useState('')
+  const [selectedTaskLabelIds, setSelectedTaskLabelIds] = useState<string[]>([])
   const [taskNote, setTaskNote] = useState('')
   const [taskFiles, setTaskFiles] = useState<File[]>([])
   const [taskFormError, setTaskFormError] = useState<string | null>(null)
@@ -128,6 +152,9 @@ export function ProjectDetailPage() {
   const assignableMembers = members.filter((member) => isAssignableMember(member.role))
   const adminCount = members.filter((member) => member.role === 'Admin').length
   const memberMutationError = getMutationErrorMessage(addMember.error ?? removeMember.error)
+  const projectFileMutationError = getMutationErrorMessage(
+    uploadProjectAttachment.error ?? deleteProjectAttachment.error,
+  )
   const isCreatingTask = createTask.isPending || isFinalizingTask
   const selectedTaskId = searchParams.get('taskId')
   const hasActiveFilters = Boolean(filterStatus || filterPriority || filterAssigneeId || searchText)
@@ -144,6 +171,7 @@ export function ProjectDetailPage() {
     setTaskStatus('Open')
     setTaskDueDate('')
     setTaskAssigneeId('')
+    setSelectedTaskLabelIds([])
     setTaskNote('')
     setTaskFiles([])
     setTaskFormError(null)
@@ -176,6 +204,10 @@ export function ProjectDetailPage() {
         await addTaskComment(task.id, taskNote.trim())
       }
 
+      for (const labelId of selectedTaskLabelIds) {
+        await attachTaskLabel(task.id, labelId)
+      }
+
       for (const file of taskFiles) {
         await uploadTaskAttachment(task.id, file)
       }
@@ -197,6 +229,14 @@ export function ProjectDetailPage() {
     } finally {
       setIsFinalizingTask(false)
     }
+  }
+
+  const toggleTaskLabel = (labelId: string) => {
+    setSelectedTaskLabelIds((labelIds) =>
+      labelIds.includes(labelId)
+        ? labelIds.filter((id) => id !== labelId)
+        : [...labelIds, labelId],
+    )
   }
 
   const handleDeleteProject = () => {
@@ -284,6 +324,85 @@ export function ProjectDetailPage() {
             style={{ width: `${progress}%` }}
           />
         </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="pp-eyebrow">Project files</p>
+            <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Essential information</h2>
+          </div>
+          <label className="pp-button-secondary cursor-pointer">
+            <Paperclip className="h-4 w-4" aria-hidden />
+            {uploadProjectAttachment.isPending ? 'Uploading...' : 'Upload files'}
+            <input
+              type="file"
+              multiple
+              className="hidden"
+              accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.md,.csv,.json,.xlsx,.docx,.zip"
+              onChange={async (e) => {
+                const selected = Array.from(e.target.files ?? [])
+                e.target.value = ''
+                try {
+                  for (const file of selected) {
+                    await uploadProjectAttachment.mutateAsync(file)
+                  }
+                } catch {
+                  // The mutation hook surfaces the upload error in the form.
+                }
+              }}
+            />
+          </label>
+        </div>
+        {projectFileMutationError && (
+          <p className="mt-3 rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
+            {projectFileMutationError}
+          </p>
+        )}
+        {projectAttachments.length === 0 ? (
+          <p className="mt-4 text-sm text-[#8e99ad]">No project files yet.</p>
+        ) : (
+          <ul className="mt-4 grid gap-2 md:grid-cols-2">
+            {projectAttachments.map((attachment) => (
+              <li
+                key={attachment.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-[#8e99ad]" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#f8fafc]">{attachment.fileName}</p>
+                    <p className="text-xs text-[#8e99ad]">{formatFileSize(attachment.sizeBytes)}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={`Download ${attachment.fileName}`}
+                    className="pp-button-ghost min-h-0 p-1.5"
+                    onClick={() => {
+                      downloadFile(
+                        `/api/projects/${project.id}/attachments/${attachment.id}/download`,
+                        attachment.fileName,
+                      ).catch(() => toast.error(`Could not download "${attachment.fileName}".`))
+                    }}
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${attachment.fileName}`}
+                    disabled={deleteProjectAttachment.isPending}
+                    className="pp-button-ghost min-h-0 p-1.5 text-[#fca5a5]"
+                    onClick={() => deleteProjectAttachment.mutate(attachment.id)}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -517,6 +636,38 @@ export function ProjectDetailPage() {
               <section className="space-y-3 border-t pp-divider pt-5">
                 <div>
                   <p className="pp-eyebrow">Step 3</p>
+                  <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Labels</h3>
+                </div>
+                {projectLabels.length === 0 ? (
+                  <p className="text-sm text-[#8e99ad]">No labels available.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {projectLabels.map((label) => {
+                      const selected = selectedTaskLabelIds.includes(label.id)
+
+                      return (
+                        <button
+                          key={label.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => toggleTaskLabel(label.id)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                            selected
+                              ? 'border-[#ffb36c] bg-[#ff7b22]/15 text-[#fff7ed]'
+                              : 'border-white/10 bg-white/[0.025] text-[#a9b1c0] hover:text-[#f8fafc]'
+                          }`}
+                        >
+                          {label.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="space-y-3 border-t pp-divider pt-5">
+                <div>
+                  <p className="pp-eyebrow">Step 4</p>
                   <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Files</h3>
                 </div>
                 <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
@@ -605,36 +756,46 @@ export function ProjectDetailPage() {
             />
           ) : (
             <ul className="space-y-3">
-              {visibleTasks.map((task) => (
-                <li key={task.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSearchParams({ taskId: task.id })}
-                    className="pp-card pp-card-hover w-full px-4 py-4 text-left"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-[#f8fafc]">{task.title}</p>
-                        <p className="mt-1 text-xs text-[#8e99ad]">
-                          Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
-                          {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
+              {visibleTasks.map((task) => {
+                const fileSummary = formatTaskFileSummary(task)
+
+                return (
+                  <li key={task.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({ taskId: task.id })}
+                      className="pp-card pp-card-hover w-full px-4 py-4 text-left"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#f8fafc]">{task.title}</p>
+                          <p className="mt-1 text-xs text-[#8e99ad]">
+                            Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
+                            {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
+                          </p>
+                        </div>
+                        <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
+                      </div>
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
+                        {task.description || 'No description yet'}
+                      </p>
+                      {fileSummary && (
+                        <p className="mt-3 flex items-center gap-1.5 truncate text-xs font-medium text-[#ffb36c]">
+                          <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          <span className="truncate">{fileSummary}</span>
                         </p>
-                      </div>
-                      <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
-                    </div>
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
-                      {task.description || 'No description yet'}
-                    </p>
-                    {task.labels.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {task.labels.map((label) => (
-                          <LabelChip key={label.id} label={label} />
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                </li>
-              ))}
+                      )}
+                      {task.labels.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {task.labels.map((label) => (
+                            <LabelChip key={label.id} label={label} />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>

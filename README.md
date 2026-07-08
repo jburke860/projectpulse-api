@@ -21,7 +21,8 @@ The backend is the core of the project. The frontend is a polished demo client t
 * Realistic seeded project, task, member, label, comment, and audit data
 * Project lifecycle statuses (`Planning`, `Active`, `OnHold`, `Completed`) with create/update endpoints
 * Task creation workflow with description, priority, status, due date, assignee, file attachments, and context notes
-* Real file uploads with size limits, extension allowlists, safe server-generated storage keys, and download/delete endpoints
+* Real file uploads on both tasks and projects with size limits, extension allowlists, safe server-generated storage keys, and download/delete endpoints
+* Seeded demo attachments generate representative file content on download
 * Color-coded project labels with attach/detach endpoints and task filtering
 * Kanban board with drag-and-drop status changes enforced by domain transition rules
 * Domain rules for task status transitions and project membership permissions
@@ -126,6 +127,8 @@ Swagger exposes the raw API contract for dashboard, demo sessions, projects, tas
 * Move tasks through allowed status transitions from the task panel or by dragging cards on the Kanban board.
 * Attach and detach color-coded labels on tasks.
 * Upload, download, and delete task file attachments (5 MB limit, extension allowlist).
+* Keep essential project files in a dedicated section at the top of each project.
+* Attach labels and files while creating a task, and see file names on task cards.
 * Filter and search tasks by status, priority, assignee, and text.
 * Add comments to tasks.
 * Review audit history across project and workspace activity feeds.
