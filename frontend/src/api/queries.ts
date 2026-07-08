@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { getMutationErrorMessage } from '../lib/errors'
 import { deleteData, getData, patchData, postData, postFormData, putData } from './client'
 import type {
   Attachment,
@@ -185,12 +187,49 @@ function updateTaskCaches(
   )
 }
 
+function toastMutationError(error: unknown) {
+  toast.error(getMutationErrorMessage(error) ?? 'Something went wrong.')
+}
+
+type TaskPatch = Partial<Pick<Task, 'status' | 'assigneeId' | 'assigneeName'>>
+
+// Applies a patch to every cache holding the task and returns a rollback.
+async function optimisticallyPatchTask(
+  queryClient: ReturnType<typeof useQueryClient>,
+  taskId: string,
+  projectId: string,
+  patch: TaskPatch,
+) {
+  await queryClient.cancelQueries({ queryKey: queryKeys.task(taskId) })
+  await queryClient.cancelQueries({ queryKey: ['tasks'] })
+
+  const previousTask = queryClient.getQueryData<Task>(queryKeys.task(taskId))
+  const previousProjectTasks = queryClient.getQueryData<Task[]>(queryKeys.tasks(projectId))
+  const previousAllTasks = queryClient.getQueryData<Task[]>(queryKeys.tasks())
+
+  const patchList = (tasks: Task[] | undefined) =>
+    tasks?.map((task) => (task.id === taskId ? { ...task, ...patch } : task))
+
+  if (previousTask) {
+    queryClient.setQueryData(queryKeys.task(taskId), { ...previousTask, ...patch })
+  }
+  queryClient.setQueryData<Task[]>(queryKeys.tasks(projectId), patchList)
+  queryClient.setQueryData<Task[]>(queryKeys.tasks(), patchList)
+
+  return () => {
+    if (previousTask) queryClient.setQueryData(queryKeys.task(taskId), previousTask)
+    queryClient.setQueryData(queryKeys.tasks(projectId), previousProjectTasks)
+    queryClient.setQueryData(queryKeys.tasks(), previousAllTasks)
+  }
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (body: { name: string; description?: string; status?: string }) =>
       postData<Project>('/api/projects', body),
-    onSuccess: () => {
+    onSuccess: (project) => {
+      toast.success(`Project "${project.name}" created.`)
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
     },
@@ -205,7 +244,9 @@ export function useDeleteProject() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (projectId: string) => deleteData<Record<string, never>>(`/api/projects/${projectId}`),
+    onError: toastMutationError,
     onSuccess: (_data, projectId) => {
+      toast.success('Project deleted.')
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity })
@@ -234,7 +275,10 @@ export function useAddProjectMember(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (body: { userId: string; role: string }) => addProjectMember(projectId, body),
-    onSuccess: () => invalidateProjectMemberQueries(queryClient, projectId),
+    onSuccess: () => {
+      toast.success('Member added.')
+      invalidateProjectMemberQueries(queryClient, projectId)
+    },
   })
 }
 
@@ -243,7 +287,10 @@ export function useRemoveProjectMember(projectId: string) {
   return useMutation({
     mutationFn: (userId: string) =>
       deleteData<Record<string, never>>(`/api/projects/${projectId}/members/${userId}`),
-    onSuccess: () => invalidateProjectMemberQueries(queryClient, projectId),
+    onSuccess: () => {
+      toast.success('Member removed.')
+      invalidateProjectMemberQueries(queryClient, projectId)
+    },
   })
 }
 
@@ -261,7 +308,10 @@ export function useCreateTask(projectId: string) {
         projectId,
         ...body,
       }),
-    onSuccess: () => invalidateTaskQueries(queryClient, projectId),
+    onSuccess: (task) => {
+      toast.success(`Task "${task.title}" created.`)
+      invalidateTaskQueries(queryClient, projectId)
+    },
   })
 }
 
@@ -274,7 +324,9 @@ export function useUpdateProject(projectId: string) {
   return useMutation({
     mutationFn: (body: { name: string; description?: string | null; status: string }) =>
       putData<Project>(`/api/projects/${projectId}`, body),
+    onError: toastMutationError,
     onSuccess: (project) => {
+      toast.success('Project updated.')
       queryClient.setQueryData(queryKeys.project(projectId), project)
       queryClient.invalidateQueries({ queryKey: queryKeys.projects })
       queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
@@ -287,7 +339,9 @@ export function useAttachLabel(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (labelId: string) => postData<Task>(`/api/tasks/${taskId}/labels`, { labelId }),
+    onError: toastMutationError,
     onSuccess: (task) => {
+      toast.success('Label added.')
       updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
@@ -298,7 +352,9 @@ export function useDetachLabel(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (labelId: string) => deleteData<Task>(`/api/tasks/${taskId}/labels/${labelId}`),
+    onError: toastMutationError,
     onSuccess: (task) => {
+      toast.success('Label removed.')
       updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
@@ -313,7 +369,9 @@ export function useUploadAttachment(taskId: string) {
       formData.append('file', file)
       return postFormData<Attachment>(`/api/tasks/${taskId}/attachments`, formData)
     },
-    onSuccess: () => {
+    onError: toastMutationError,
+    onSuccess: (attachment) => {
+      toast.success(`"${attachment.fileName}" uploaded.`)
       queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity })
     },
@@ -325,7 +383,9 @@ export function useDeleteAttachment(taskId: string) {
   return useMutation({
     mutationFn: (attachmentId: string) =>
       deleteData<Record<string, never>>(`/api/tasks/${taskId}/attachments/${attachmentId}`),
+    onError: toastMutationError,
     onSuccess: () => {
+      toast.success('Attachment deleted.')
       queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.activity })
     },
@@ -343,10 +403,17 @@ export function useBoardStatusChange(projectId: string) {
   return useMutation({
     mutationFn: ({ taskId, status }: { taskId: string; status: string }) =>
       changeTaskStatus(taskId, status),
-    onSuccess: (task) => {
-      updateTaskCaches(queryClient, task, projectId)
-      invalidateTaskQueries(queryClient, projectId)
+    onMutate: ({ taskId, status }) =>
+      optimisticallyPatchTask(queryClient, taskId, projectId, { status }),
+    onError: (error, _vars, rollback) => {
+      rollback?.()
+      toastMutationError(error)
     },
+    onSuccess: (task) => {
+      toast.success(`Task moved to ${task.status.replace(/([A-Z])/g, ' $1').trim()}.`)
+      updateTaskCaches(queryClient, task, projectId)
+    },
+    onSettled: () => invalidateTaskQueries(queryClient, projectId),
   })
 }
 
@@ -354,10 +421,16 @@ export function useUpdateTaskStatus(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (status: string) => changeTaskStatus(taskId, status),
-    onSuccess: (task) => {
-      updateTaskCaches(queryClient, task, projectId)
-      invalidateTaskQueries(queryClient, projectId)
+    onMutate: (status) => optimisticallyPatchTask(queryClient, taskId, projectId, { status }),
+    onError: (error, _status, rollback) => {
+      rollback?.()
+      toastMutationError(error)
     },
+    onSuccess: (task) => {
+      toast.success(`Task moved to ${task.status.replace(/([A-Z])/g, ' $1').trim()}.`)
+      updateTaskCaches(queryClient, task, projectId)
+    },
+    onSettled: () => invalidateTaskQueries(queryClient, projectId),
   })
 }
 
@@ -366,10 +439,22 @@ export function useAssignTask(taskId: string, projectId: string) {
   return useMutation({
     mutationFn: (assigneeId: string | null) =>
       patchData<Task>(`/api/tasks/${taskId}/assign`, { assigneeId }),
-    onSuccess: (task) => {
-      updateTaskCaches(queryClient, task, projectId)
-      invalidateTaskQueries(queryClient, projectId)
+    onMutate: (assigneeId) => {
+      const members = queryClient.getQueryData<ProjectMember[]>(queryKeys.projectMembers(projectId))
+      const assigneeName = assigneeId
+        ? (members?.find((member) => member.userId === assigneeId)?.displayName ?? null)
+        : null
+      return optimisticallyPatchTask(queryClient, taskId, projectId, { assigneeId, assigneeName })
     },
+    onError: (error, _assigneeId, rollback) => {
+      rollback?.()
+      toastMutationError(error)
+    },
+    onSuccess: (task) => {
+      toast.success(task.assigneeName ? `Assigned to ${task.assigneeName}.` : 'Task unassigned.')
+      updateTaskCaches(queryClient, task, projectId)
+    },
+    onSettled: () => invalidateTaskQueries(queryClient, projectId),
   })
 }
 
@@ -383,6 +468,7 @@ export function useUpdateTask(taskId: string, projectId: string) {
       dueDateUtc?: string | null
     }) => putData<Task>(`/api/tasks/${taskId}`, body),
     onSuccess: (task) => {
+      toast.success('Task updated.')
       updateTaskCaches(queryClient, task, projectId)
       invalidateTaskQueries(queryClient, projectId)
     },
@@ -397,7 +483,31 @@ export function useAddComment(taskId: string, projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (body: string) => addTaskComment(taskId, body),
-    onSuccess: () => {
+    onMutate: async (body) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.taskComments(taskId) })
+      const previousComments = queryClient.getQueryData<Comment[]>(queryKeys.taskComments(taskId))
+
+      const optimisticComment: Comment = {
+        id: `optimistic-${crypto.randomUUID()}`,
+        taskId,
+        authorId: '',
+        authorName: 'You',
+        body,
+        createdAtUtc: new Date().toISOString(),
+      }
+      queryClient.setQueryData<Comment[]>(queryKeys.taskComments(taskId), (comments) => [
+        ...(comments ?? []),
+        optimisticComment,
+      ])
+
+      return () => queryClient.setQueryData(queryKeys.taskComments(taskId), previousComments)
+    },
+    onError: (error, _body, rollback) => {
+      rollback?.()
+      toastMutationError(error)
+    },
+    onSuccess: () => toast.success('Comment added.'),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.taskComments(taskId) })
       invalidateTaskQueries(queryClient, projectId)
     },

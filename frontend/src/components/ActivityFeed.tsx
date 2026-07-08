@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { Activity } from 'lucide-react'
 import { useTask, useTaskComments } from '../api/queries'
 import type { AuditLog, Comment } from '../api/types'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
+import { EmptyState } from './EmptyState'
 import { Badge } from './ui'
 
 function formatTime(iso: string) {
@@ -51,9 +54,20 @@ export function ActivityFeed({ items, emptyMessage = 'No activity yet.', compact
   const { data: task, isLoading: isTaskLoading } = useTask(selectedTaskId)
   const { data: comments = [] } = useTaskComments(selectedTaskId)
   const selectedComment = selectedItem ? findActivityComment(selectedItem, comments) : null
+  useEscapeToClose(() => setSelectedItem(null), selectedItem !== null)
 
   if (!items.length) {
-    return <p className="text-sm text-[#8e99ad]">{emptyMessage}</p>
+    if (compact) {
+      return <p className="text-sm text-[#8e99ad]">{emptyMessage}</p>
+    }
+
+    return (
+      <EmptyState
+        icon={Activity}
+        title="No activity yet"
+        description="Workspace events like task updates, assignments, and comments will appear here."
+      />
+    )
   }
 
   return (

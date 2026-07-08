@@ -12,6 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { useDashboard } from '../api/queries'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { DashboardSkeleton } from '../components/Skeleton'
 import { StatCard } from '../components/StatCard'
 import { Button, Card } from '../components/ui'
 import { useDemoSession } from '../demo/DemoSessionContext'
@@ -29,7 +30,7 @@ export function DashboardPage() {
     }
   }
 
-  if (isLoading) return <p className="pp-subtitle">Loading dashboard...</p>
+  if (isLoading) return <DashboardSkeleton />
   if (error) return <p className="text-sm font-medium text-[#fecaca]">Could not load dashboard. Check the API deployment URL.</p>
   if (!data) return null
   if (data.totalProjects === 0) {
@@ -56,22 +57,31 @@ export function DashboardPage() {
     <div className="pp-page-shell">
       <section className="pp-hero-card relative overflow-hidden p-6 sm:p-8">
         <svg
-          className="pointer-events-none absolute right-6 top-1/2 hidden h-24 w-56 -translate-y-1/2 text-[#ff7b22]/50 sm:block"
-          viewBox="0 0 220 90"
+          className="pointer-events-none absolute right-8 top-1/2 hidden h-20 w-72 -translate-y-1/2 sm:block"
+          viewBox="0 0 288 80"
           fill="none"
           aria-hidden
         >
+          <defs>
+            <linearGradient id="pp-pulse-stroke" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#ff7b22" stopOpacity="0" />
+              <stop offset="0.35" stopColor="#ff7b22" stopOpacity="0.55" />
+              <stop offset="0.75" stopColor="#ffb347" stopOpacity="0.9" />
+              <stop offset="1" stopColor="#ffb347" stopOpacity="0.25" />
+            </linearGradient>
+          </defs>
           <path
-            d="M2 78 C 40 76, 60 70, 92 58 S 150 40, 176 22 S 206 8, 218 4"
-            stroke="currentColor"
-            strokeWidth="2"
+            d="M2 40 H96 l10 -12 l10 12 h28 l12 -28 l14 50 l12 -36 l8 14 h94"
+            stroke="url(#pp-pulse-stroke)"
+            strokeWidth="2.5"
             strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <div>
             <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">
-              Welcome back, Demo User! 👋
+              Welcome back, Demo User!
             </h1>
             <p className="mt-2 max-w-2xl text-[#cbd5e1]">
               Here's what's happening across your ProjectPulse workspace.

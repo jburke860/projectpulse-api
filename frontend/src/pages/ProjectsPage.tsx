@@ -1,17 +1,19 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, ListChecks, Plus, Users } from 'lucide-react'
+import { ArrowRight, FolderPlus, ListChecks, Plus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { addProjectMember, queryKeys, useCreateProject, useDeleteProject, useProjects, useUsers } from '../api/queries'
 import type { User } from '../api/types'
+import { ConfirmDialog } from '../components/ConfirmDialog'
+import { EmptyState } from '../components/EmptyState'
+import { ProjectGridSkeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { Badge, Button, Card } from '../components/ui'
+import { getMutationErrorMessage } from '../lib/errors'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
+import { projectRoles, type ProjectRole } from '../lib/roles'
 
-const projectRoles = ['Admin', 'Member', 'Viewer'] as const
 const defaultDemoAdminEmail = 'jeremy.demo@projectpulse.local'
-
-type ProjectRole = (typeof projectRoles)[number]
 
 interface SelectedMember {
   userId: string
@@ -20,28 +22,6 @@ interface SelectedMember {
 
 function findDefaultDemoAdmin(users: User[]) {
   return users.find((user) => user.email === defaultDemoAdminEmail)
-}
-
-function getMutationErrorMessage(error: unknown) {
-  if (!error) return null
-
-  const response = (error as {
-    response?: { data?: { errors?: string[]; message?: string } }
-  }).response
-
-  if (response?.data?.errors?.length) {
-    return response.data.errors.join(' ')
-  }
-
-  if (response?.data?.message) {
-    return response.data.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
 }
 
 export function ProjectsPage() {
@@ -59,6 +39,7 @@ export function ProjectsPage() {
   const [memberRole, setMemberRole] = useState<ProjectRole>('Member')
   const [formError, setFormError] = useState<string | null>(null)
   const [isAddingMembers, setIsAddingMembers] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null)
 
   const defaultDemoAdmin = useMemo(() => findDefaultDemoAdmin(users), [users])
   const selectedMembersWithDefault = useMemo(() => {
@@ -167,17 +148,19 @@ export function ProjectsPage() {
     }
   }
 
-  const handleDeleteProject = (projectId: string, projectName: string) => {
-    const confirmed = window.confirm(
-      `Delete "${projectName}" and all of its tasks? This cannot be undone.`,
+  if (isLoading) {
+    return (
+      <div className="pp-page-shell">
+        <div className="pp-page-header">
+          <div>
+            <p className="pp-eyebrow">Workspace</p>
+            <h1 className="pp-title">Projects</h1>
+          </div>
+        </div>
+        <ProjectGridSkeleton />
+      </div>
     )
-
-    if (confirmed) {
-      deleteProject.mutate(projectId)
-    }
   }
-
-  if (isLoading) return <p className="pp-subtitle">Loading projects...</p>
   if (error) return <p className="text-sm font-medium text-[#fecaca]">Failed to load projects.</p>
 
   return (
@@ -423,7 +406,7 @@ export function ProjectsPage() {
               <button
                 type="button"
                 disabled={deleteProject.isPending}
-                onClick={() => handleDeleteProject(project.id, project.name)}
+                onClick={() => setProjectToDelete({ id: project.id, name: project.name })}
                 className="pp-button-danger min-h-0 px-3 py-2 text-xs"
               >
                 Delete
@@ -432,6 +415,35 @@ export function ProjectsPage() {
           </Card>
         ))}
       </div>
+
+      {projects.length === 0 && !showForm && (
+        <EmptyState
+          icon={FolderPlus}
+          title="No projects yet"
+          description="Create your first project to start organizing tasks, members, and activity."
+          action={
+            <Button type="button" onClick={handleToggleForm}>
+              <Plus className="h-4 w-4" aria-hidden />
+              New project
+            </Button>
+          }
+        />
+      )}
+
+      <ConfirmDialog
+        open={projectToDelete !== null}
+        title="Delete project?"
+        description={`"${projectToDelete?.name}" and all of its tasks will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete project"
+        isPending={deleteProject.isPending}
+        onCancel={() => setProjectToDelete(null)}
+        onConfirm={() => {
+          if (!projectToDelete) return
+          deleteProject.mutate(projectToDelete.id, {
+            onSuccess: () => setProjectToDelete(null),
+          })
+        }}
+      />
     </div>
   )
 }

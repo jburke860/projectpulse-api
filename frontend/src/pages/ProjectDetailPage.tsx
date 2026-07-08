@@ -21,25 +21,23 @@ import {
 } from '../api/queries'
 import { ArrowLeft, Columns3, List, Search } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { LabelChip } from '../components/LabelChip'
+import { CardSkeleton, Skeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { TaskBoard } from '../components/TaskBoard'
 import { TaskPanel } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
+import { getMutationErrorMessage } from '../lib/errors'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
+import { isAssignableMember, projectRoles } from '../lib/roles'
 import { formatTaskStatus, taskPriorities, taskStatuses, taskStatusTones } from '../lib/tasks'
-
-const memberRoles = ['Member', 'Viewer', 'Admin']
 const initialStatusTransitions: Record<string, string[]> = {
   Open: [],
   InProgress: ['InProgress'],
   InReview: ['InProgress', 'InReview'],
   Done: ['InProgress', 'InReview', 'Done'],
   Cancelled: ['Cancelled'],
-}
-
-function isAssignableMember(role: string) {
-  return role === 'Admin' || role === 'Member'
 }
 
 function toDueDateUtc(date: string) {
@@ -54,28 +52,6 @@ function formatDueDate(date: string | null) {
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(date))
-}
-
-function getMutationErrorMessage(error: unknown) {
-  if (!error) return null
-
-  const response = (error as {
-    response?: { data?: { errors?: string[]; message?: string } }
-  }).response
-
-  if (response?.data?.errors?.length) {
-    return response.data.errors.join(' ')
-  }
-
-  if (response?.data?.message) {
-    return response.data.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
 }
 
 export function ProjectDetailPage() {
@@ -120,9 +96,27 @@ export function ProjectDetailPage() {
   const [isFinalizingTask, setIsFinalizingTask] = useState(false)
   const [memberUserId, setMemberUserId] = useState('')
   const [memberRole, setMemberRole] = useState('Member')
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<{ userId: string; displayName: string } | null>(null)
 
   if (!project) {
-    return <p className="pp-subtitle">Loading project...</p>
+    return (
+      <div className="pp-page-shell">
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <div className="grid gap-3 sm:grid-cols-5">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-20" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            <CardSkeleton lines={3} />
+            <CardSkeleton lines={3} />
+          </div>
+          <CardSkeleton lines={6} />
+        </div>
+      </div>
+    )
   }
 
   const progress =
@@ -206,15 +200,9 @@ export function ProjectDetailPage() {
   }
 
   const handleDeleteProject = () => {
-    const confirmed = window.confirm(
-      `Delete "${project.name}" and all of its tasks? This cannot be undone.`,
-    )
-
-    if (confirmed) {
-      deleteProject.mutate(project.id, {
-        onSuccess: () => navigate('/projects'),
-      })
-    }
+    deleteProject.mutate(project.id, {
+      onSuccess: () => navigate('/projects'),
+    })
   }
 
   return (
@@ -259,7 +247,7 @@ export function ProjectDetailPage() {
             <Button
               type="button"
               disabled={deleteProject.isPending}
-              onClick={handleDeleteProject}
+              onClick={() => setShowDeleteDialog(true)}
               variant="danger"
             >
               Delete project
@@ -695,7 +683,7 @@ export function ProjectDetailPage() {
                   value={memberRole}
                   onChange={(e) => setMemberRole(e.target.value)}
                 >
-                  {memberRoles.map((role) => (
+                  {projectRoles.map((role) => (
                     <option key={role} value={role}>
                       {role}
                     </option>
@@ -722,7 +710,7 @@ export function ProjectDetailPage() {
                   <button
                     type="button"
                     disabled={removeMember.isPending || (m.role === 'Admin' && adminCount <= 1)}
-                    onClick={() => removeMember.mutate(m.userId)}
+                    onClick={() => setMemberToRemove({ userId: m.userId, displayName: m.displayName })}
                     className="pp-button-danger min-h-0 shrink-0 rounded-lg px-2 py-1 text-xs"
                   >
                     Remove
@@ -755,6 +743,31 @@ export function ProjectDetailPage() {
           <TaskPanel taskId={selectedTaskId} projectId={id} onClose={() => setSearchParams({}, { replace: true })} />
         </>
       )}
+
+      <ConfirmDialog
+        open={showDeleteDialog}
+        title="Delete project?"
+        description={`"${project.name}" and all of its tasks will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete project"
+        isPending={deleteProject.isPending}
+        onCancel={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteProject}
+      />
+
+      <ConfirmDialog
+        open={memberToRemove !== null}
+        title="Remove member?"
+        description={`${memberToRemove?.displayName} will be removed from this project and unassigned from their tasks.`}
+        confirmLabel="Remove member"
+        isPending={removeMember.isPending}
+        onCancel={() => setMemberToRemove(null)}
+        onConfirm={() => {
+          if (!memberToRemove) return
+          removeMember.mutate(memberToRemove.userId, {
+            onSuccess: () => setMemberToRemove(null),
+          })
+        }}
+      />
     </div>
   )
 }

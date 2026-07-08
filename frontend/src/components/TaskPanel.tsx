@@ -17,35 +17,12 @@ import {
   useUploadAttachment,
 } from '../api/queries'
 import { downloadFile } from '../api/client'
+import { getMutationErrorMessage } from '../lib/errors'
+import { isAssignableMember } from '../lib/roles'
 import { allowedStatusTransitions, formatTaskStatus, taskPriorities, taskStatuses } from '../lib/tasks'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { LabelChip } from './LabelChip'
 import { Button } from './ui'
-
-function isAssignableMember(role: string) {
-  return role === 'Admin' || role === 'Member'
-}
-
-function getMutationErrorMessage(error: unknown) {
-  if (!error) return null
-
-  const response = (error as {
-    response?: { data?: { errors?: string[]; message?: string } }
-  }).response
-
-  if (response?.data?.errors?.length) {
-    return response.data.errors.join(' ')
-  }
-
-  if (response?.data?.message) {
-    return response.data.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong.'
-}
 
 interface TaskPanelProps {
   taskId: string
@@ -55,6 +32,7 @@ interface TaskPanelProps {
 
 export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
   const { data: task, isLoading } = useTask(taskId)
+  useEscapeToClose(onClose)
 
   if (isLoading || !task) {
     return (
@@ -343,6 +321,9 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
 
         <div>
           <h3 className="text-sm font-bold text-[#f8fafc]">Comments</h3>
+          {comments.length === 0 && (
+            <p className="mt-3 text-xs text-[#687387]">No comments yet. Start the conversation below.</p>
+          )}
           <ul className="mt-3 space-y-2">
             {comments.map((c) => (
               <li key={c.id} className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm">
