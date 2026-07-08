@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deleteData, getData, patchData, postData, putData } from './client'
+import { deleteData, getData, patchData, postData, postFormData, putData } from './client'
 import type {
+  Attachment,
   AuditLog,
   Comment,
   Dashboard,
   DemoSession,
+  Label,
   PagedResult,
   Project,
   ProjectMember,
@@ -12,6 +14,12 @@ import type {
   Task,
   User,
 } from './types'
+
+export interface TaskFilters {
+  status?: string
+  priority?: string
+  assigneeId?: string
+}
 
 async function getPagedItems<T>(url: string) {
   const result = await getData<PagedResult<T>>(url)
@@ -25,9 +33,14 @@ export const queryKeys = {
   projectSummary: (id: string) => ['projectSummary', id] as const,
   projectMembers: (id: string) => ['projectMembers', id] as const,
   projectActivity: (id: string) => ['projectActivity', id] as const,
-  tasks: (projectId?: string) => ['tasks', projectId ?? 'all'] as const,
+  projectLabels: (id: string) => ['projectLabels', id] as const,
+  tasks: (projectId?: string, filters?: TaskFilters) =>
+    filters && Object.values(filters).some(Boolean)
+      ? (['tasks', projectId ?? 'all', filters] as const)
+      : (['tasks', projectId ?? 'all'] as const),
   task: (id: string) => ['task', id] as const,
   taskComments: (id: string) => ['taskComments', id] as const,
+  taskAttachments: (id: string) => ['taskAttachments', id] as const,
   activity: ['activity'] as const,
   users: ['users'] as const,
 }
@@ -82,11 +95,32 @@ export function useProjectActivity(id: string) {
   })
 }
 
-export function useTasks(projectId?: string) {
-  const params = projectId ? `?projectId=${projectId}&pageSize=100` : '?pageSize=100'
+export function useTasks(projectId?: string, filters?: TaskFilters) {
+  const params = new URLSearchParams({ pageSize: '100' })
+  if (projectId) params.set('projectId', projectId)
+  if (filters?.status) params.set('status', filters.status)
+  if (filters?.priority) params.set('priority', filters.priority)
+  if (filters?.assigneeId) params.set('assigneeId', filters.assigneeId)
+
   return useQuery({
-    queryKey: queryKeys.tasks(projectId),
-    queryFn: () => getPagedItems<Task>(`/api/tasks${params}`),
+    queryKey: queryKeys.tasks(projectId, filters),
+    queryFn: () => getPagedItems<Task>(`/api/tasks?${params.toString()}`),
+  })
+}
+
+export function useProjectLabels(projectId: string) {
+  return useQuery({
+    queryKey: queryKeys.projectLabels(projectId),
+    queryFn: () => getData<Label[]>(`/api/projects/${projectId}/labels`),
+    enabled: !!projectId,
+  })
+}
+
+export function useTaskAttachments(taskId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.taskAttachments(taskId ?? ''),
+    queryFn: () => getData<Attachment[]>(`/api/tasks/${taskId}/attachments`),
+    enabled: !!taskId,
   })
 }
 
@@ -233,6 +267,87 @@ export function useCreateTask(projectId: string) {
 
 export function changeTaskStatus(taskId: string, status: string) {
   return patchData<Task>(`/api/tasks/${taskId}/status`, { status })
+}
+
+export function useUpdateProject(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { name: string; description?: string | null; status: string }) =>
+      putData<Project>(`/api/projects/${projectId}`, body),
+    onSuccess: (project) => {
+      queryClient.setQueryData(queryKeys.project(projectId), project)
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectActivity(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+    },
+  })
+}
+
+export function useAttachLabel(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (labelId: string) => postData<Task>(`/api/tasks/${taskId}/labels`, { labelId }),
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}
+
+export function useDetachLabel(taskId: string, projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (labelId: string) => deleteData<Task>(`/api/tasks/${taskId}/labels/${labelId}`),
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
+}
+
+export function useUploadAttachment(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return postFormData<Attachment>(`/api/tasks/${taskId}/attachments`, formData)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+    },
+  })
+}
+
+export function useDeleteAttachment(taskId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (attachmentId: string) =>
+      deleteData<Record<string, never>>(`/api/tasks/${taskId}/attachments/${attachmentId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.taskAttachments(taskId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity })
+    },
+  })
+}
+
+export function uploadTaskAttachment(taskId: string, file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return postFormData<Attachment>(`/api/tasks/${taskId}/attachments`, formData)
+}
+
+export function useBoardStatusChange(projectId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, status }: { taskId: string; status: string }) =>
+      changeTaskStatus(taskId, status),
+    onSuccess: (task) => {
+      updateTaskCaches(queryClient, task, projectId)
+      invalidateTaskQueries(queryClient, projectId)
+    },
+  })
 }
 
 export function useUpdateTaskStatus(taskId: string, projectId: string) {

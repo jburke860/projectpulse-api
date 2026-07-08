@@ -1,25 +1,25 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { Download, Paperclip, Trash2 } from 'lucide-react'
 import type { Task } from '../api/types'
 import {
   useAddComment,
   useAssignTask,
+  useAttachLabel,
+  useDeleteAttachment,
+  useDetachLabel,
+  useProjectLabels,
   useProjectMembers,
   useTask,
+  useTaskAttachments,
   useTaskComments,
   useUpdateTask,
   useUpdateTaskStatus,
+  useUploadAttachment,
 } from '../api/queries'
+import { downloadFile } from '../api/client'
+import { allowedStatusTransitions, formatTaskStatus, taskPriorities, taskStatuses } from '../lib/tasks'
+import { LabelChip } from './LabelChip'
 import { Button } from './ui'
-
-const statuses = ['Open', 'InProgress', 'InReview', 'Done', 'Cancelled']
-const priorities = ['Low', 'Medium', 'High', 'Critical']
-const allowedStatusTransitions: Record<string, string[]> = {
-  Open: ['Open', 'InProgress', 'Cancelled'],
-  InProgress: ['InProgress', 'InReview', 'Open', 'Cancelled'],
-  InReview: ['InReview', 'Done', 'InProgress', 'Cancelled'],
-  Done: ['Done'],
-  Cancelled: ['Cancelled', 'Open'],
-}
 
 function isAssignableMember(role: string) {
   return role === 'Admin' || role === 'Member'
@@ -74,11 +74,21 @@ interface LoadedTaskPanelProps extends TaskPanelProps {
 function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelProps) {
   const { data: comments = [] } = useTaskComments(taskId)
   const { data: members = [] } = useProjectMembers(projectId)
+  const { data: projectLabels = [] } = useProjectLabels(projectId)
+  const { data: attachments = [] } = useTaskAttachments(taskId)
   const assignableMembers = members.filter((member) => isAssignableMember(member.role))
   const updateStatus = useUpdateTaskStatus(taskId, projectId)
   const assignTask = useAssignTask(taskId, projectId)
   const updateTask = useUpdateTask(taskId, projectId)
   const addComment = useAddComment(taskId, projectId)
+  const attachLabel = useAttachLabel(taskId, projectId)
+  const detachLabel = useDetachLabel(taskId, projectId)
+  const uploadAttachment = useUploadAttachment(taskId)
+  const deleteAttachment = useDeleteAttachment(taskId)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const attachedLabelIds = new Set(task.labels.map((label) => label.id))
+  const availableLabels = projectLabels.filter((label) => !attachedLabelIds.has(label.id))
 
   const [comment, setComment] = useState('')
   const [edit, setEdit] = useState<Partial<Task>>({
@@ -89,8 +99,31 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
   })
   const allowedStatuses = allowedStatusTransitions[task.status] ?? [task.status]
   const mutationError = getMutationErrorMessage(
-    updateStatus.error ?? updateTask.error ?? assignTask.error ?? addComment.error,
+    updateStatus.error ??
+      updateTask.error ??
+      assignTask.error ??
+      addComment.error ??
+      attachLabel.error ??
+      detachLabel.error ??
+      uploadAttachment.error ??
+      deleteAttachment.error,
   )
+
+  const handleFileSelected = (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    uploadAttachment.mutate(file, {
+      onSettled: () => {
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      },
+    })
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
+    return `${bytes} B`
+  }
 
   return (
     <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-white/10 bg-[#0a0d13] shadow-2xl">
@@ -142,9 +175,9 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
               value={task.status}
               onChange={(e) => updateStatus.mutate(e.target.value)}
             >
-              {statuses.map((s) => (
+              {taskStatuses.map((s) => (
                 <option key={s} value={s} disabled={!allowedStatuses.includes(s)}>
-                  {s}
+                  {formatTaskStatus(s)}
                 </option>
               ))}
             </select>
@@ -156,7 +189,7 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
               value={edit.priority ?? task.priority}
               onChange={(e) => setEdit((s) => ({ ...s, priority: e.target.value }))}
             >
-              {priorities.map((p) => (
+              {taskPriorities.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>
@@ -208,6 +241,104 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">Labels</label>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {task.labels.map((label) => (
+              <LabelChip
+                key={label.id}
+                label={label}
+                disabled={detachLabel.isPending}
+                onRemove={() => detachLabel.mutate(label.id)}
+              />
+            ))}
+            {task.labels.length === 0 && (
+              <span className="text-xs text-[#687387]">No labels yet</span>
+            )}
+          </div>
+          {availableLabels.length > 0 && (
+            <select
+              aria-label="Add label"
+              className="pp-select mt-2 text-sm"
+              value=""
+              disabled={attachLabel.isPending}
+              onChange={(e) => e.target.value && attachLabel.mutate(e.target.value)}
+            >
+              <option value="" disabled>
+                Add label…
+              </option>
+              {availableLabels.map((label) => (
+                <option key={label.id} value={label.id}>
+                  {label.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">Attachments</label>
+          <ul className="mt-2 space-y-2">
+            {attachments.map((attachment) => (
+              <li
+                key={attachment.id}
+                className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-2.5 text-sm"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <Paperclip className="h-4 w-4 shrink-0 text-[#8e99ad]" aria-hidden />
+                  <div className="min-w-0">
+                    <p className="truncate text-[#f8fafc]">{attachment.fileName}</p>
+                    <p className="text-xs text-[#8e99ad]">{formatFileSize(attachment.sizeBytes)}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={`Download ${attachment.fileName}`}
+                    className="pp-button-ghost min-h-0 p-1.5"
+                    onClick={() =>
+                      downloadFile(
+                        `/api/tasks/${taskId}/attachments/${attachment.id}/download`,
+                        attachment.fileName,
+                      )
+                    }
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${attachment.fileName}`}
+                    disabled={deleteAttachment.isPending}
+                    className="pp-button-ghost min-h-0 p-1.5 text-[#fca5a5]"
+                    onClick={() => deleteAttachment.mutate(attachment.id)}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+              </li>
+            ))}
+            {attachments.length === 0 && (
+              <li className="text-xs text-[#687387]">No attachments yet</li>
+            )}
+          </ul>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.md,.csv,.json,.xlsx,.docx,.zip"
+            onChange={(e) => handleFileSelected(e.target.files)}
+          />
+          <button
+            type="button"
+            disabled={uploadAttachment.isPending}
+            onClick={() => fileInputRef.current?.click()}
+            className="pp-button-secondary mt-2 min-h-0 px-3 py-2 text-xs"
+          >
+            <Paperclip className="h-3.5 w-3.5" aria-hidden />
+            {uploadAttachment.isPending ? 'Uploading…' : 'Upload file (max 5 MB)'}
+          </button>
         </div>
 
         <div>

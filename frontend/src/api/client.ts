@@ -69,3 +69,22 @@ export async function putData<T>(url: string, body: unknown): Promise<T> {
   const { data } = await api.put<ApiResult<T>>(url, body)
   return data.data
 }
+
+export async function postFormData<T>(url: string, formData: FormData): Promise<T> {
+  // Let the browser set the multipart boundary instead of the JSON default.
+  const { data } = await api.post<ApiResult<T>>(url, formData, {
+    headers: { 'Content-Type': undefined as unknown as string },
+  })
+  return data.data
+}
+
+export async function downloadFile(url: string, fileName: string) {
+  // Plain <a href> would not carry the demo-session header, so fetch as a blob.
+  const { data } = await api.get<Blob>(url, { responseType: 'blob' })
+  const objectUrl = URL.createObjectURL(data)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = fileName
+  anchor.click()
+  URL.revokeObjectURL(objectUrl)
+}

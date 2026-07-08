@@ -47,6 +47,21 @@ export interface ProjectMember {
   role: string
 }
 
+export interface Label {
+  id: string
+  name: string
+  color: string
+}
+
+export interface Attachment {
+  id: string
+  taskId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  createdAtUtc: string
+}
+
 export interface Task {
   id: string
   projectId: string
@@ -58,6 +73,7 @@ export interface Task {
   assigneeId: string | null
   assigneeName: string | null
   createdAtUtc: string
+  labels: Label[]
 }
 
 export interface Comment {

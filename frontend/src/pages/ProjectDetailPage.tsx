@@ -5,6 +5,7 @@ import {
   addTaskComment,
   changeTaskStatus,
   queryKeys,
+  uploadTaskAttachment,
   useAddProjectMember,
   useCreateTask,
   useDeleteProject,
@@ -14,26 +15,21 @@ import {
   useProjectSummary,
   useRemoveProjectMember,
   useTasks,
+  useUpdateProject,
   useUsers,
+  type TaskFilters,
 } from '../api/queries'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Columns3, List, Search } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { LabelChip } from '../components/LabelChip'
 import { ProjectIconTile } from '../components/ProjectIconTile'
+import { TaskBoard } from '../components/TaskBoard'
 import { TaskPanel } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
-import { formatProjectStatus, projectStatusTone } from '../lib/projectStatus'
-
-const statusTones: Record<string, 'neutral' | 'orange' | 'yellow' | 'green' | 'red'> = {
-  Open: 'neutral',
-  InProgress: 'orange',
-  InReview: 'yellow',
-  Done: 'green',
-  Cancelled: 'red',
-}
+import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
+import { formatTaskStatus, taskPriorities, taskStatuses, taskStatusTones } from '../lib/tasks'
 
 const memberRoles = ['Member', 'Viewer', 'Admin']
-const taskPriorities = ['Low', 'Medium', 'High', 'Critical']
-const taskStatuses = ['Open', 'InProgress', 'InReview', 'Done', 'Cancelled']
 const initialStatusTransitions: Record<string, string[]> = {
   Open: [],
   InProgress: ['InProgress'],
@@ -87,14 +83,27 @@ export function ProjectDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterPriority, setFilterPriority] = useState('')
+  const [filterAssigneeId, setFilterAssigneeId] = useState('')
+  const [searchText, setSearchText] = useState('')
+  const [view, setView] = useState<'list' | 'board'>('list')
+
+  const taskFilters: TaskFilters = {
+    status: filterStatus || undefined,
+    priority: filterPriority || undefined,
+    assigneeId: filterAssigneeId || undefined,
+  }
+
   const { data: project } = useProject(id)
   const { data: summary } = useProjectSummary(id)
   const { data: members = [] } = useProjectMembers(id)
   const { data: users = [] } = useUsers()
-  const { data: tasks = [] } = useTasks(id)
+  const { data: tasks = [] } = useTasks(id, taskFilters)
   const { data: activity = [] } = useProjectActivity(id)
   const createTask = useCreateTask(id)
   const deleteProject = useDeleteProject()
+  const updateProject = useUpdateProject(id)
   const addMember = useAddProjectMember(id)
   const removeMember = useRemoveProjectMember(id)
 
@@ -106,6 +115,7 @@ export function ProjectDetailPage() {
   const [taskDueDate, setTaskDueDate] = useState('')
   const [taskAssigneeId, setTaskAssigneeId] = useState('')
   const [taskNote, setTaskNote] = useState('')
+  const [taskFiles, setTaskFiles] = useState<File[]>([])
   const [taskFormError, setTaskFormError] = useState<string | null>(null)
   const [isFinalizingTask, setIsFinalizingTask] = useState(false)
   const [memberUserId, setMemberUserId] = useState('')
@@ -126,6 +136,12 @@ export function ProjectDetailPage() {
   const memberMutationError = getMutationErrorMessage(addMember.error ?? removeMember.error)
   const isCreatingTask = createTask.isPending || isFinalizingTask
   const selectedTaskId = searchParams.get('taskId')
+  const hasActiveFilters = Boolean(filterStatus || filterPriority || filterAssigneeId || searchText)
+  const visibleTasks = searchText
+    ? tasks.filter((task) =>
+        `${task.title} ${task.description ?? ''}`.toLowerCase().includes(searchText.toLowerCase()),
+      )
+    : tasks
 
   const resetTaskForm = () => {
     setTaskTitle('')
@@ -135,6 +151,7 @@ export function ProjectDetailPage() {
     setTaskDueDate('')
     setTaskAssigneeId('')
     setTaskNote('')
+    setTaskFiles([])
     setTaskFormError(null)
   }
 
@@ -163,6 +180,10 @@ export function ProjectDetailPage() {
 
       if (taskNote.trim()) {
         await addTaskComment(task.id, taskNote.trim())
+      }
+
+      for (const file of taskFiles) {
+        await uploadTaskAttachment(task.id, file)
       }
 
       await Promise.all([
@@ -215,14 +236,35 @@ export function ProjectDetailPage() {
             </div>
             <p className="pp-subtitle mt-3 max-w-3xl">{project.description}</p>
           </div>
-          <Button
-            type="button"
-            disabled={deleteProject.isPending}
-            onClick={handleDeleteProject}
-            variant="danger"
-          >
-            Delete project
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              aria-label="Project status"
+              className="pp-select w-auto text-sm"
+              value={project.status}
+              disabled={updateProject.isPending}
+              onChange={(e) =>
+                updateProject.mutate({
+                  name: project.name,
+                  description: project.description,
+                  status: e.target.value,
+                })
+              }
+            >
+              {projectStatuses.map((option) => (
+                <option key={option} value={option}>
+                  {formatProjectStatus(option)}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              disabled={deleteProject.isPending}
+              onClick={handleDeleteProject}
+              variant="danger"
+            >
+              Delete project
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -263,7 +305,36 @@ export function ProjectDetailPage() {
               <p className="pp-eyebrow">Execution</p>
               <h2 className="mt-1 text-xl font-bold text-[#f8fafc]">Tasks</h2>
             </div>
-            <Button
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                <button
+                  type="button"
+                  aria-pressed={view === 'list'}
+                  onClick={() => setView('list')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    view === 'list'
+                      ? 'bg-[#ff7b22]/15 text-[#fff7ed] shadow-[inset_0_0_0_1px_rgba(255,122,34,0.35)]'
+                      : 'text-[#a9b1c0] hover:text-[#f8fafc]'
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5" aria-hidden />
+                  List
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'board'}
+                  onClick={() => setView('board')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                    view === 'board'
+                      ? 'bg-[#ff7b22]/15 text-[#fff7ed] shadow-[inset_0_0_0_1px_rgba(255,122,34,0.35)]'
+                      : 'text-[#a9b1c0] hover:text-[#f8fafc]'
+                  }`}
+                >
+                  <Columns3 className="h-3.5 w-3.5" aria-hidden />
+                  Board
+                </button>
+              </div>
+              <Button
               type="button"
               onClick={() => {
                 if (showTaskForm) {
@@ -278,6 +349,74 @@ export function ProjectDetailPage() {
             >
               {showTaskForm ? 'Cancel' : 'New task'}
             </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[12rem] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#687387]" aria-hidden />
+              <input
+                type="search"
+                aria-label="Search tasks"
+                placeholder="Search tasks…"
+                className="pp-input pl-9 text-sm"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
+            <select
+              aria-label="Filter by status"
+              className="pp-select w-auto text-sm"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              {taskStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {formatTaskStatus(status)}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Filter by priority"
+              className="pp-select w-auto text-sm"
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+            >
+              <option value="">All priorities</option>
+              {taskPriorities.map((priority) => (
+                <option key={priority} value={priority}>
+                  {priority}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Filter by assignee"
+              className="pp-select w-auto text-sm"
+              value={filterAssigneeId}
+              onChange={(e) => setFilterAssigneeId(e.target.value)}
+            >
+              <option value="">All assignees</option>
+              {assignableMembers.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="pp-button-ghost min-h-0 px-3 py-2 text-xs"
+                onClick={() => {
+                  setFilterStatus('')
+                  setFilterPriority('')
+                  setFilterAssigneeId('')
+                  setSearchText('')
+                }}
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
           {showTaskForm && (
@@ -393,16 +532,37 @@ export function ProjectDetailPage() {
                   <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Files</h3>
                 </div>
                 <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
-                  <button
-                    type="button"
-                    disabled
-                    className="pp-button-secondary opacity-60"
-                  >
-                    Upload files
-                  </button>
+                  <label className="pp-button-secondary cursor-pointer">
+                    Choose files
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.md,.csv,.json,.xlsx,.docx,.zip"
+                      onChange={(e) => {
+                        setTaskFiles((files) => [...files, ...Array.from(e.target.files ?? [])])
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                  {taskFiles.length > 0 && (
+                    <ul className="mt-3 space-y-1.5">
+                      {taskFiles.map((file, index) => (
+                        <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-2 text-sm text-[#cbd5e1]">
+                          <span className="truncate">{file.name}</span>
+                          <button
+                            type="button"
+                            className="pp-button-ghost min-h-0 px-2 py-0.5 text-xs"
+                            onClick={() => setTaskFiles((files) => files.filter((_, i) => i !== index))}
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <p className="mt-3 text-sm leading-6 text-[#8e99ad]">
-                    File attachments are planned for a future version. Hosted demo runs in a lightweight
-                    environment, so uploads are disabled.
+                    Files upload after the task is created. Max 5 MB each.
                   </p>
                 </div>
               </section>
@@ -442,31 +602,52 @@ export function ProjectDetailPage() {
             </form>
           )}
 
-          <ul className="space-y-3">
-            {tasks.map((task) => (
-              <li key={task.id}>
-                <button
-                  type="button"
-                  onClick={() => setSearchParams({ taskId: task.id })}
-                  className="pp-card pp-card-hover w-full px-4 py-4 text-left"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[#f8fafc]">{task.title}</p>
-                      <p className="mt-1 text-xs text-[#8e99ad]">
-                        Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
-                        {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
-                      </p>
+          {visibleTasks.length === 0 && (
+            <p className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-[#8e99ad]">
+              {hasActiveFilters ? 'No tasks match the current filters.' : 'No tasks yet.'}
+            </p>
+          )}
+
+          {view === 'board' ? (
+            <TaskBoard
+              tasks={visibleTasks}
+              projectId={id}
+              onSelectTask={(taskId) => setSearchParams({ taskId })}
+            />
+          ) : (
+            <ul className="space-y-3">
+              {visibleTasks.map((task) => (
+                <li key={task.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams({ taskId: task.id })}
+                    className="pp-card pp-card-hover w-full px-4 py-4 text-left"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#f8fafc]">{task.title}</p>
+                        <p className="mt-1 text-xs text-[#8e99ad]">
+                          Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
+                          {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
+                        </p>
+                      </div>
+                      <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
                     </div>
-                    <Badge tone={statusTones[task.status] ?? 'neutral'}>{task.status}</Badge>
-                  </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
-                    {task.description || 'No description yet'}
-                  </p>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
+                      {task.description || 'No description yet'}
+                    </p>
+                    {task.labels.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {task.labels.map((label) => (
+                          <LabelChip key={label.id} label={label} />
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <div className="space-y-6">
