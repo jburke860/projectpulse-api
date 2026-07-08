@@ -29,6 +29,13 @@ public class ProjectsController : ControllerBase
         return Ok(ApiResult<ProjectDto>.Ok(result, "Project created."));
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<ApiResult<ProjectDto>>> Update(Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new UpdateProjectCommand(id, request), cancellationToken);
+        return Ok(ApiResult<ProjectDto>.Ok(result, "Project updated."));
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult<ApiResult<object>>> Delete(Guid id, CancellationToken cancellationToken)
     {

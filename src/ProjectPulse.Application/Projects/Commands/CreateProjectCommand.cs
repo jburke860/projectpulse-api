@@ -16,6 +16,9 @@ public class CreateProjectCommandValidator : AbstractValidator<CreateProjectComm
     {
         RuleFor(x => x.Request.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Request.Description).MaximumLength(2000);
+        RuleFor(x => x.Request.Status)
+            .Must(s => s == null || Enum.TryParse<ProjectStatus>(s, true, out _))
+            .WithMessage("Status must be one of: Planning, Active, OnHold, Completed.");
     }
 }
 
@@ -43,12 +46,16 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
             });
         }
 
-        var project = new Project(command.Request.Name, command.Request.Description);
+        var status = command.Request.Status is null
+            ? ProjectStatus.Active
+            : Enum.Parse<ProjectStatus>(command.Request.Status, true);
+
+        var project = new Project(command.Request.Name, command.Request.Description, status);
         _db.Projects.Add(project);
         _db.ProjectMembers.Add(new ProjectMember(project.Id, _currentUser.UserId, ProjectRole.Admin));
         await _audit.LogAsync(project.Id, null, AuditAction.Created, nameof(Project), $"Project '{project.Name}' created.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new ProjectDto(project.Id, project.Name, project.Description, project.CreatedAtUtc, 1, 0);
+        return new ProjectDto(project.Id, project.Name, project.Description, project.Status.ToString(), project.CreatedAtUtc, 1, 0);
     }
 }

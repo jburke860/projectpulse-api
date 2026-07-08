@@ -30,6 +30,7 @@ public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, P
                 p.Id,
                 p.Name,
                 p.Description,
+                p.Status.ToString(),
                 p.CreatedAtUtc,
                 p.Members.Count,
                 p.Tasks.Count))

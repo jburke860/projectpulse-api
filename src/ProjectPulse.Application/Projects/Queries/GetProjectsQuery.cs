@@ -27,6 +27,7 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, IReadOn
                 p.Id,
                 p.Name,
                 p.Description,
+                p.Status.ToString(),
                 p.CreatedAtUtc,
                 p.Members.Count,
                 p.Tasks.Count))

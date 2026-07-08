@@ -275,7 +275,8 @@ public static class SeedData
                     "omar.hassan",
                     "Duplicate events are idempotent now. Timeout retry still needs one more staging run.",
                     ["qa", "backend"])
-            ]),
+            ],
+            Status: ProjectStatus.Planning),
         new(
             "Mobile Field Updates",
             "Improve mobile task updates for field teams with offline-friendly notes, attachments, and status sync.",
@@ -332,7 +333,8 @@ public static class SeedData
                     "jeremy.demo",
                     "Background refresh no longer clears draft notes. This is ready for the field pilot.",
                     ["qa", "frontend"])
-            ]),
+            ],
+            Status: ProjectStatus.OnHold),
         new(
             "Partner Integrations Hub",
             "Centralize partner configuration, onboarding status, and integration health signals.",
@@ -389,7 +391,8 @@ public static class SeedData
                     "jeremy.demo",
                     "This checklist should sit in the launch runbook. Add the production credential owner field.",
                     ["security", "docs"])
-            ]),
+            ],
+            Status: ProjectStatus.Planning),
         new(
             "Data Visibility Upgrade",
             "Improve reporting confidence with clearer dashboard metrics, activity filters, and export controls.",
@@ -446,7 +449,8 @@ public static class SeedData
                     "sarah.kim",
                     "Mention the dashboard definition audit; customers have been asking how the totals are calculated.",
                     ["docs", "product"])
-            ]),
+            ],
+            Status: ProjectStatus.Completed),
         new(
             "Security and Compliance Readiness",
             "Prepare project workflows for enterprise security reviews with clearer access, audit, and retention controls.",
@@ -549,7 +553,7 @@ public static class SeedData
             .ToDictionary(entry => entry.LocalPart, entry => entry.User);
 
         var projectEntries = Projects
-            .Select(projectSeed => new ProjectEntry(projectSeed, new Project(projectSeed.Name, projectSeed.Description)))
+            .Select(projectSeed => new ProjectEntry(projectSeed, new Project(projectSeed.Name, projectSeed.Description, projectSeed.Status)))
             .ToList();
 
         db.Projects.AddRange(projectEntries.Select(entry => entry.Project));
@@ -779,7 +783,8 @@ public static class SeedData
         string Name,
         string Description,
         string[] MemberLocalParts,
-        TaskSeed[] Tasks);
+        TaskSeed[] Tasks,
+        ProjectStatus Status = ProjectStatus.Active);
 
     private sealed record TaskSeed(
         string Title,
