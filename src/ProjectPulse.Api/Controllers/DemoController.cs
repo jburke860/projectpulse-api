@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Common.Models;
 using ProjectPulse.Application.Demo.Dtos;
@@ -17,6 +18,7 @@ public class DemoController : ControllerBase
     }
 
     [HttpPost("sessions")]
+    [EnableRateLimiting("demo-session-create")]
     public async Task<ActionResult<ApiResult<DemoSessionDto>>> CreateSession(CancellationToken cancellationToken)
     {
         var session = await _demoSessions.CreateAsync(cancellationToken);

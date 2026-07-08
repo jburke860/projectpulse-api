@@ -16,6 +16,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Development");
 
+        // Functional tests share one client/IP; keep rate limits out of their way.
+        builder.UseSetting("RateLimiting:Global:PermitLimit", "100000");
+        builder.UseSetting("RateLimiting:DemoSessions:PermitLimit", "100000");
+
         builder.ConfigureServices(services =>
         {
             services.RemoveAll(typeof(DbContextOptions<ApplicationDbContext>));

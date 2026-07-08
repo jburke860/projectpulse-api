@@ -43,7 +43,7 @@ public class DemoSessionService : IDemoSessionService
             createdAtUtc.AddHours(DemoSessionConstants.LifetimeHours));
     }
 
-    private async Task CleanupExpiredSessionsAsync(CancellationToken cancellationToken)
+    public async Task CleanupExpiredSessionsAsync(CancellationToken cancellationToken = default)
     {
         var cutoffUtc = DateTime.UtcNow.AddHours(-DemoSessionConstants.LifetimeHours);
         var expiredSessionIds = await _db.Users.AsNoTracking()

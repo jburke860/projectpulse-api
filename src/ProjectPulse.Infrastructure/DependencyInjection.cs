@@ -25,6 +25,7 @@ public static class DependencyInjection
             RootPath = configuration["FileStorage:RootPath"] ?? "attachments"
         });
         services.AddSingleton<IFileStorageService, LocalDiskFileStorageService>();
+        services.AddHostedService<DemoSessionCleanupService>();
 
         return services;
     }
