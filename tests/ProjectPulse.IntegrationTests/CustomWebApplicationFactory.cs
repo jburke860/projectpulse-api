@@ -11,6 +11,7 @@ namespace ProjectPulse.IntegrationTests;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private SqliteConnection? _connection;
+    private readonly string _attachmentRoot = Path.Combine(Path.GetTempPath(), $"pp-test-attachments-{Guid.NewGuid():N}");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -19,6 +20,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         // Functional tests share one client/IP; keep rate limits out of their way.
         builder.UseSetting("RateLimiting:Global:PermitLimit", "100000");
         builder.UseSetting("RateLimiting:DemoSessions:PermitLimit", "100000");
+        builder.UseSetting("FileStorage:RootPath", _attachmentRoot);
 
         builder.ConfigureServices(services =>
         {
@@ -37,5 +39,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         base.Dispose(disposing);
         _connection?.Dispose();
+
+        if (Directory.Exists(_attachmentRoot))
+        {
+            Directory.Delete(_attachmentRoot, recursive: true);
+        }
     }
 }

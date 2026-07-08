@@ -332,26 +332,6 @@ export function ProjectsPage() {
             </ul>
           </section>
 
-          <section className="space-y-3 border-t pp-divider pt-5">
-            <div>
-              <p className="pp-eyebrow">Step 3</p>
-              <h3 className="mt-1 text-lg font-bold text-[#f8fafc]">Files</h3>
-            </div>
-            <div className="rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-4">
-              <button
-                type="button"
-                disabled
-                className="pp-button-secondary opacity-60"
-              >
-                Upload files
-              </button>
-              <p className="mt-3 text-sm leading-6 text-[#8e99ad]">
-                File attachments are planned for a future version. Hosted demo runs in a lightweight
-                environment, so uploads are disabled.
-              </p>
-            </div>
-          </section>
-
           <div className="flex flex-wrap justify-end gap-3 border-t pp-divider pt-5">
             <Button
               type="button"

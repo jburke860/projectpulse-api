@@ -16,33 +16,38 @@ The backend is the core of the project. The frontend is a polished demo client t
 * Clean Architecture boundaries: `Domain`, `Application`, `Infrastructure`, and `Api`
 * CQRS-style commands and queries with MediatR
 * FluentValidation request validation and centralized exception handling
-* EF Core persistence with SQLite
-* Public demo-session flow with isolated seeded workspaces
-* Realistic seeded project, task, member, comment, and audit data
-* Project creation workflow with details, member roles, and file-upload placeholder
-* Task creation workflow with description, priority, status, due date, assignee, file-upload placeholder, and context notes
+* EF Core persistence with SQLite and migrations
+* Public demo-session flow with isolated seeded workspaces and background cleanup of expired sessions
+* Realistic seeded project, task, member, label, comment, and audit data
+* Project lifecycle statuses (`Planning`, `Active`, `OnHold`, `Completed`) with create/update endpoints
+* Task creation workflow with description, priority, status, due date, assignee, file attachments, and context notes
+* Real file uploads with size limits, extension allowlists, safe server-generated storage keys, and download/delete endpoints
+* Color-coded project labels with attach/detach endpoints and task filtering
+* Kanban board with drag-and-drop status changes enforced by domain transition rules
 * Domain rules for task status transitions and project membership permissions
 * Role-aware project membership with `Admin`, `Member`, and `Viewer` roles
 * Viewer users excluded from task assignment
 * Last-admin protection when removing project members
 * Automatic task unassignment when a removed member had assigned tasks
-* Audit logging for projects, tasks, comments, assignments, status changes, and membership changes
-* Clickable activity cards with detailed activity modal/context view
+* Audit logging for projects, tasks, comments, assignments, status changes, attachments, and membership changes
+* Paginated list endpoints with enforced page-size limits
+* Rate limiting (global per-session budget plus a stricter demo-session-creation policy)
+* Structured logging with Serilog request logging
 * Swagger/OpenAPI for direct API exploration
-* React dashboard with project, task, member, and activity workflows
-* Unit and integration tests with CI-ready commands
+* React dashboard with optimistic updates, toasts, skeleton loading, and confirm dialogs
+* Unit, integration, and frontend component tests wired into CI
 
 ## Tech Stack
 
-| Layer          | Technologies                                          |
-| -------------- | ----------------------------------------------------- |
-| API            | ASP.NET Core 8 Web API, Swagger/OpenAPI               |
-| Application    | MediatR, FluentValidation                             |
-| Domain         | Entities, enums, domain rules                         |
-| Infrastructure | EF Core, SQLite                                       |
-| Frontend       | React, TypeScript, Vite, Tailwind CSS, TanStack Query |
-| Tests          | xUnit, FluentAssertions, WebApplicationFactory        |
-| DevOps         | Docker Compose, GitHub Actions, Vercel, Render        |
+| Layer          | Technologies                                                            |
+| -------------- | ----------------------------------------------------------------------- |
+| API            | ASP.NET Core 8 Web API, Swagger/OpenAPI, rate limiting, Serilog         |
+| Application    | MediatR, FluentValidation                                               |
+| Domain         | Entities, enums, domain rules                                           |
+| Infrastructure | EF Core, SQLite, local file storage, background services                |
+| Frontend       | React, TypeScript, Vite, Tailwind CSS, TanStack Query, dnd-kit, sonner  |
+| Tests          | xUnit, FluentAssertions, WebApplicationFactory, Vitest, Testing Library |
+| DevOps         | Docker Compose, GitHub Actions, Vercel, Render                          |
 
 ## Architecture
 
@@ -111,14 +116,17 @@ Swagger exposes the raw API contract for dashboard, demo sessions, projects, tas
 
 * Start a public demo session with seeded project/task/member data.
 * View dashboard metrics for projects, open tasks, completed tasks, overdue tasks, and recent activity.
-* Browse realistic seeded projects.
-* Create projects with name, description, member selection, role assignment, and file-upload placeholder.
+* Browse realistic seeded projects with lifecycle status badges.
+* Create projects with name, description, status, member selection, and role assignment.
 * Add members to a project as `Admin`, `Member`, or `Viewer`.
 * Remove project members while protecting the final admin.
-* Create tasks with title, detailed description, priority, status, due date, eligible assignee, file-upload placeholder, and optional context.
+* Create tasks with title, detailed description, priority, status, due date, eligible assignee, file attachments, and optional context.
 * Assign tasks only to eligible project members. `Viewer` users cannot be assigned tasks.
 * Edit task title, description, priority, due date, and assignee.
-* Move tasks through allowed status transitions.
+* Move tasks through allowed status transitions from the task panel or by dragging cards on the Kanban board.
+* Attach and detach color-coded labels on tasks.
+* Upload, download, and delete task file attachments (5 MB limit, extension allowlist).
+* Filter and search tasks by status, priority, assignee, and text.
 * Add comments to tasks.
 * Review audit history across project and workspace activity feeds.
 * Click activity records to inspect detailed event context.
@@ -168,27 +176,33 @@ The Vite dev server proxies `/api` to `http://localhost:5000`.
 2. Click **Start New Demo Session** to create an isolated seeded workspace for this browser.
 3. Review dashboard metrics and recent activity.
 4. Open the Projects page and browse seeded projects.
-5. Create a project with a name, description, member roles, and file-upload placeholder.
+5. Create a project with a name, description, status, and member roles.
 6. Open a project detail page and review tasks, members, progress, and recent activity.
 7. Add project members as `Admin`, `Member`, or `Viewer`.
-8. Create a task with a detailed description, priority, status, due date, eligible assignee, and context notes.
-9. Open or update tasks to change status, priority, due date, assignee, and comments.
-10. Remove a project member and confirm their assigned project tasks become unassigned.
-11. Open Activity to review audit entries for tasks, assignments, comments, and membership changes.
-12. Click an activity record to inspect detailed event context.
-13. Open Swagger to inspect and test the raw API endpoints.
-14. Use **Clear and start new session** to create a fresh seeded workspace.
+8. Create a task with a detailed description, priority, status, due date, eligible assignee, file attachments, and context notes.
+9. Switch to the Board view and drag tasks between status columns.
+10. Open a task to change status, priority, due date, assignee, labels, attachments, and comments.
+11. Remove a project member and confirm their assigned project tasks become unassigned.
+12. Open Activity to review audit entries for tasks, assignments, comments, attachments, and membership changes.
+13. Click an activity record to inspect detailed event context.
+14. Open Swagger to inspect and test the raw API endpoints.
+15. Use **Clear and start new session** to create a fresh seeded workspace.
 
 ## API Highlights
 
 ```bash
-# List projects
-curl http://localhost:5000/api/projects
+# List projects (paginated)
+curl "http://localhost:5000/api/projects?page=1&pageSize=20"
 
-# Create a project
+# Create a project with a lifecycle status
 curl -X POST http://localhost:5000/api/projects \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sprint 42","description":"Q2 delivery"}'
+  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Planning"}'
+
+# Update a project (name, description, status)
+curl -X PUT http://localhost:5000/api/projects/{projectId} \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Active"}'
 
 # Add a project member
 curl -X POST http://localhost:5000/api/projects/{projectId}/members \
@@ -215,6 +229,18 @@ curl -X POST http://localhost:5000/api/tasks/{taskId}/comments \
   -H "Content-Type: application/json" \
   -d '{"body":"Confirmed the workflow edge case and added a test note."}'
 
+# List a project's labels, then attach one to a task
+curl http://localhost:5000/api/projects/{projectId}/labels
+curl -X POST http://localhost:5000/api/tasks/{taskId}/labels \
+  -H "Content-Type: application/json" \
+  -d '{"labelId":"{labelId}"}'
+
+# Upload, download, and delete a task attachment
+curl -X POST http://localhost:5000/api/tasks/{taskId}/attachments \
+  -F "file=@notes.pdf"
+curl -OJ http://localhost:5000/api/tasks/{taskId}/attachments/{attachmentId}/download
+curl -X DELETE http://localhost:5000/api/tasks/{taskId}/attachments/{attachmentId}
+
 # Remove a project member
 curl -X DELETE http://localhost:5000/api/projects/{projectId}/members/{userId}
 
@@ -222,8 +248,8 @@ curl -X DELETE http://localhost:5000/api/projects/{projectId}/members/{userId}
 curl http://localhost:5000/api/projects/{projectId}/summary
 curl http://localhost:5000/api/projects/{projectId}/activity
 
-# Workspace activity
-curl http://localhost:5000/api/activity
+# Workspace activity (paginated, max page size 200)
+curl "http://localhost:5000/api/activity?page=1&pageSize=50"
 ```
 
 ## Authorization Note
@@ -270,14 +296,15 @@ Frontend checks:
 ```bash
 cd frontend
 npm run lint
+npm test
 npm run build
 ```
 
-The test suite includes unit tests for domain/application behavior and integration tests for API workflows such as project deletion, task updates, status changes, demo-session isolation, and project member add/remove behavior.
+The backend suite includes unit tests for domain rules, validators, and pagination plus integration tests for API workflows: project CRUD and statuses, labels, attachment upload/download round-trips, pagination clamps, rate limiting, demo-session isolation, task updates, status changes, and member add/remove behavior. The frontend suite covers shared helpers (status transitions, error formatting) and component rendering with Vitest and Testing Library.
 
 ## CI
 
-GitHub Actions runs restore, build, and test checks on every push to `main`.
+GitHub Actions runs two jobs on every push and pull request to `main`: backend restore/build/test, and frontend lint/test/build.
 
 ## Project Structure
 
@@ -302,7 +329,6 @@ frontend/
 * JWT authentication and production-ready authorization
 * Persistent hosted database for longer-lived public demo sessions
 * Role editing for existing project members
-* Kanban-style task board
-* File attachment storage and download support
+* Cloud blob storage (S3/Azure) for attachments in hosted environments
 * More detailed dashboard charts and reporting filters
 * User account registration and workspace invite flow

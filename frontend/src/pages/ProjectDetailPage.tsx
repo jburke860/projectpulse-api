@@ -347,7 +347,7 @@ export function ProjectDetailPage() {
                 type="search"
                 aria-label="Search tasks"
                 placeholder="Search tasks…"
-                className="pp-input pl-9 text-sm"
+                className="pp-input pp-input-icon-left text-sm"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
               />
@@ -528,7 +528,8 @@ export function ProjectDetailPage() {
                       className="hidden"
                       accept=".png,.jpg,.jpeg,.gif,.pdf,.txt,.md,.csv,.json,.xlsx,.docx,.zip"
                       onChange={(e) => {
-                        setTaskFiles((files) => [...files, ...Array.from(e.target.files ?? [])])
+                        const selected = Array.from(e.target.files ?? [])
+                        setTaskFiles((files) => [...files, ...selected])
                         e.target.value = ''
                       }}
                     />
