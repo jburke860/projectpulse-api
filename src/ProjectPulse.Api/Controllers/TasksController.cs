@@ -70,6 +70,20 @@ public class TasksController : ControllerBase
         return Ok(ApiResult<TaskDto>.Ok(result, "Task assignment updated."));
     }
 
+    [HttpPost("{id:guid}/labels")]
+    public async Task<ActionResult<ApiResult<TaskDto>>> AttachLabel(Guid id, [FromBody] AttachLabelRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new AttachLabelCommand(id, request), cancellationToken);
+        return Ok(ApiResult<TaskDto>.Ok(result, "Label attached."));
+    }
+
+    [HttpDelete("{id:guid}/labels/{labelId:guid}")]
+    public async Task<ActionResult<ApiResult<TaskDto>>> DetachLabel(Guid id, Guid labelId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DetachLabelCommand(id, labelId), cancellationToken);
+        return Ok(ApiResult<TaskDto>.Ok(result, "Label detached."));
+    }
+
     [HttpPost("{id:guid}/comments")]
     public async Task<ActionResult<ApiResult<CommentDto>>> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken cancellationToken)
     {

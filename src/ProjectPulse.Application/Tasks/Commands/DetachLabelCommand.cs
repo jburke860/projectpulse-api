@@ -1,42 +1,33 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ProjectPulse.Application.Common.Exceptions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Tasks.Dtos;
+using ProjectPulse.Domain.Entities;
 using ProjectPulse.Domain.Enums;
 using ProjectPulse.Domain.Rules;
-using TaskPriority = ProjectPulse.Domain.Enums.TaskPriority;
 
 namespace ProjectPulse.Application.Tasks.Commands;
 
-public record UpdateTaskCommand(Guid TaskId, UpdateTaskRequest Request) : IRequest<TaskDto>;
+public record DetachLabelCommand(Guid TaskId, Guid LabelId) : IRequest<TaskDto>;
 
-public class UpdateTaskCommandValidator : AbstractValidator<UpdateTaskCommand>
-{
-    public UpdateTaskCommandValidator()
-    {
-        RuleFor(x => x.Request.Title).NotEmpty().MaximumLength(300);
-        RuleFor(x => x.Request.Priority).NotEmpty().Must(p => Enum.TryParse<TaskPriority>(p, true, out _));
-    }
-}
-
-public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskDto>
+public class DetachLabelCommandHandler : IRequestHandler<DetachLabelCommand, TaskDto>
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditService _audit;
 
-    public UpdateTaskCommandHandler(IApplicationDbContext db, ICurrentUserService currentUser, IAuditService audit)
+    public DetachLabelCommandHandler(IApplicationDbContext db, ICurrentUserService currentUser, IAuditService audit)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
     }
 
-    public async Task<TaskDto> Handle(UpdateTaskCommand command, CancellationToken cancellationToken)
+    public async Task<TaskDto> Handle(DetachLabelCommand command, CancellationToken cancellationToken)
     {
-        var task = await _db.Tasks.Include(t => t.Assignee)
+        var task = await _db.Tasks
+            .Include(t => t.Assignee)
             .Include(t => t.TaskLabels).ThenInclude(tl => tl.Label)
             .FirstOrDefaultAsync(t => t.Id == command.TaskId, cancellationToken)
             ?? throw new NotFoundException($"Task {command.TaskId} was not found.");
@@ -47,9 +38,14 @@ public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskD
             .FirstOrDefaultAsync(cancellationToken);
         ProjectMembershipRules.EnsureCanManageTasks(role);
 
-        var priority = Enum.Parse<TaskPriority>(command.Request.Priority, true);
-        task.Update(command.Request.Title, command.Request.Description, priority, command.Request.DueDateUtc);
-        await _audit.LogAsync(task.ProjectId, task.Id, AuditAction.Updated, nameof(Domain.Entities.TaskItem), "Task updated.", cancellationToken);
+        var taskLabel = task.TaskLabels.FirstOrDefault(tl => tl.LabelId == command.LabelId)
+            ?? throw new NotFoundException($"Label {command.LabelId} is not attached to task {command.TaskId}.");
+
+        var labelName = taskLabel.Label?.Name ?? "label";
+        _db.TaskLabels.Remove(taskLabel);
+        task.TaskLabels.Remove(taskLabel);
+        await _audit.LogAsync(task.ProjectId, task.Id, AuditAction.Updated, nameof(TaskLabel),
+            $"Label '{labelName}' removed from task '{task.Title}'.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
         return CreateTaskCommandHandler.Map(task, task.Assignee?.DisplayName);

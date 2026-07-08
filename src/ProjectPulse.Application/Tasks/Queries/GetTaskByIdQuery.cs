@@ -25,6 +25,7 @@ public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto
     {
         var task = await _db.Tasks.AsNoTracking()
             .Include(t => t.Assignee)
+            .Include(t => t.TaskLabels).ThenInclude(tl => tl.Label)
             .VisibleTo(_currentUser.UserId)
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
             ?? throw new NotFoundException($"Task {query.Id} was not found.");

@@ -1,5 +1,7 @@
 namespace ProjectPulse.Application.Tasks.Dtos;
 
+public record LabelDto(Guid Id, string Name, string Color);
+
 public record TaskDto(
     Guid Id,
     Guid ProjectId,
@@ -10,7 +12,8 @@ public record TaskDto(
     DateTime? DueDateUtc,
     Guid? AssigneeId,
     string? AssigneeName,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    IReadOnlyList<LabelDto> Labels);
 
 public record CreateTaskRequest(
     Guid ProjectId,

@@ -21,6 +21,12 @@ public static class WorkspaceQueryExtensions
     public static IQueryable<AuditLog> VisibleTo(this IQueryable<AuditLog> auditLogs, Guid userId) =>
         auditLogs.Where(a => a.Project.Members.Any(m => m.UserId == userId));
 
+    public static IQueryable<Label> VisibleTo(this IQueryable<Label> labels, Guid userId) =>
+        labels.Where(l => l.Project.Members.Any(m => m.UserId == userId));
+
+    public static IQueryable<Attachment> VisibleTo(this IQueryable<Attachment> attachments, Guid userId) =>
+        attachments.Where(a => a.Task.Project.Members.Any(m => m.UserId == userId));
+
     public static IQueryable<User> VisibleTo(this IQueryable<User> users, Guid userId)
     {
         var demoEmailSuffix = DemoSessionConstants.EmailSessionSuffix(userId);

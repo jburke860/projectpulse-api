@@ -89,5 +89,10 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
 
     internal static TaskDto Map(TaskItem task, string? assigneeName) =>
         new(task.Id, task.ProjectId, task.Title, task.Description, task.Status.ToString(), task.Priority.ToString(),
-            task.DueDateUtc, task.AssigneeId, assigneeName, task.CreatedAtUtc);
+            task.DueDateUtc, task.AssigneeId, assigneeName, task.CreatedAtUtc,
+            task.TaskLabels
+                .Where(tl => tl.Label != null)
+                .Select(tl => new LabelDto(tl.LabelId, tl.Label.Name, tl.Label.Color))
+                .OrderBy(l => l.Name)
+                .ToList());
 }

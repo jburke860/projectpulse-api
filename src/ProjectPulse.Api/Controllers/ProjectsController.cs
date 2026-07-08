@@ -71,6 +71,13 @@ public class ProjectsController : ControllerBase
         return Ok(ApiResult<object>.Ok(result));
     }
 
+    [HttpGet("{id:guid}/labels")]
+    public async Task<IActionResult> GetLabels(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetProjectLabelsQuery(id), cancellationToken);
+        return Ok(ApiResult<object>.Ok(result));
+    }
+
     [HttpGet("{id:guid}/activity")]
     public async Task<IActionResult> GetActivity(Guid id, CancellationToken cancellationToken)
     {

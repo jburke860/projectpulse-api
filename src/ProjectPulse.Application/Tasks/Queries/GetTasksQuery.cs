@@ -71,7 +71,11 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, IReadOnlyList
                 t.DueDateUtc,
                 t.AssigneeId,
                 t.Assignee != null ? t.Assignee.DisplayName : null,
-                t.CreatedAtUtc))
+                t.CreatedAtUtc,
+                t.TaskLabels
+                    .OrderBy(tl => tl.Label.Name)
+                    .Select(tl => new LabelDto(tl.LabelId, tl.Label.Name, tl.Label.Color))
+                    .ToList()))
             .ToListAsync(cancellationToken);
     }
 }

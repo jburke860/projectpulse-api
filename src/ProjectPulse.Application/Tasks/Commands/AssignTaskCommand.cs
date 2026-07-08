@@ -26,6 +26,7 @@ public class AssignTaskCommandHandler : IRequestHandler<AssignTaskCommand, TaskD
     public async Task<TaskDto> Handle(AssignTaskCommand command, CancellationToken cancellationToken)
     {
         var task = await _db.Tasks.Include(t => t.Assignee)
+            .Include(t => t.TaskLabels).ThenInclude(tl => tl.Label)
             .FirstOrDefaultAsync(t => t.Id == command.TaskId, cancellationToken)
             ?? throw new NotFoundException($"Task {command.TaskId} was not found.");
 
