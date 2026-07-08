@@ -84,6 +84,42 @@ public class TasksController : ControllerBase
         return Ok(ApiResult<TaskDto>.Ok(result, "Label detached."));
     }
 
+    [HttpGet("{id:guid}/attachments")]
+    public async Task<ActionResult<ApiResult<IReadOnlyList<AttachmentDto>>>> GetAttachments(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTaskAttachmentsQuery(id), cancellationToken);
+        return Ok(ApiResult<IReadOnlyList<AttachmentDto>>.Ok(result));
+    }
+
+    [HttpPost("{id:guid}/attachments")]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    public async Task<ActionResult<ApiResult<AttachmentDto>>> UploadAttachment(Guid id, IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file is null)
+        {
+            return BadRequest(ApiResult<AttachmentDto>.Fail(["Attach a file using the 'file' form field."], "Validation failed"));
+        }
+
+        await using var content = file.OpenReadStream();
+        var command = new UploadAttachmentCommand(id, file.FileName, file.ContentType, file.Length, content);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(ApiResult<AttachmentDto>.Ok(result, "Attachment uploaded."));
+    }
+
+    [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DownloadAttachmentQuery(id, attachmentId), cancellationToken);
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+
+    [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
+    public async Task<ActionResult<ApiResult<object>>> DeleteAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteAttachmentCommand(id, attachmentId), cancellationToken);
+        return Ok(ApiResult<object>.Ok(new { }, "Attachment deleted."));
+    }
+
     [HttpPost("{id:guid}/comments")]
     public async Task<ActionResult<ApiResult<CommentDto>>> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken cancellationToken)
     {

@@ -20,6 +20,11 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IDemoSessionService, DemoSessionService>();
+        services.AddSingleton(new FileStorageOptions
+        {
+            RootPath = configuration["FileStorage:RootPath"] ?? "attachments"
+        });
+        services.AddSingleton<IFileStorageService, LocalDiskFileStorageService>();
 
         return services;
     }

@@ -2,6 +2,14 @@ namespace ProjectPulse.Application.Tasks.Dtos;
 
 public record LabelDto(Guid Id, string Name, string Color);
 
+public record AttachmentDto(
+    Guid Id,
+    Guid TaskId,
+    string FileName,
+    string ContentType,
+    long SizeBytes,
+    DateTime CreatedAtUtc);
+
 public record TaskDto(
     Guid Id,
     Guid ProjectId,
