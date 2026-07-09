@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { allowedStatusTransitions, canTransition, formatTaskStatus, taskStatuses } from './tasks'
+import {
+  allowedStatusTransitions,
+  canTransition,
+  formatTaskStatus,
+  isTaskOverdue,
+  taskStatuses,
+} from './tasks'
 
 describe('canTransition', () => {
   it('allows staying in the same status', () => {
@@ -38,5 +44,28 @@ describe('formatTaskStatus', () => {
 
   it('passes unknown statuses through', () => {
     expect(formatTaskStatus('Archived')).toBe('Archived')
+  })
+})
+
+describe('isTaskOverdue', () => {
+  const now = new Date(2026, 6, 9, 15, 0)
+
+  it('is overdue when due before today and still active', () => {
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 8).toISOString(), status: 'Open' }, now)).toBe(true)
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 1).toISOString(), status: 'InProgress' }, now)).toBe(true)
+  })
+
+  it('is not overdue when due today or later', () => {
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 9, 8, 0).toISOString(), status: 'Open' }, now)).toBe(false)
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 15).toISOString(), status: 'Open' }, now)).toBe(false)
+  })
+
+  it('never flags finished or cancelled tasks', () => {
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 1).toISOString(), status: 'Done' }, now)).toBe(false)
+    expect(isTaskOverdue({ dueDateUtc: new Date(2026, 6, 1).toISOString(), status: 'Cancelled' }, now)).toBe(false)
+  })
+
+  it('never flags tasks without a due date', () => {
+    expect(isTaskOverdue({ dueDateUtc: null, status: 'Open' }, now)).toBe(false)
   })
 })
