@@ -103,7 +103,8 @@ public static class SeedData
                     "daniel.roberts",
                     "Expired links are handled correctly. I found one missing success event after the final redirect.",
                     ["qa", "security"])
-            ]),
+            ],
+            Files: ["project-brief.pdf", "onboarding-requirements.xlsx", "design-review-notes.md"]),
         new(
             "Internal Ops Automation",
             "Automate recurring operations workflows, reduce manual status tracking, and improve team handoff visibility.",
@@ -161,7 +162,8 @@ public static class SeedData
                     "jeremy.demo",
                     "The stale exception trigger is firing correctly. Pending approval reminders still need the new delay window.",
                     ["backend", "qa"])
-            ]),
+            ],
+            Files: ["automation-scope.pdf", "workflow-inventory.xlsx", "stakeholder-signoff.md"]),
         new(
             "API Reliability Sprint",
             "Improve backend stability, task workflow validation, and observability for project-management operations.",
@@ -218,7 +220,8 @@ public static class SeedData
                     "jeremy.demo",
                     "This is the right coverage for the customer bug. Please include the project-admin case too.",
                     ["qa", "backend"])
-            ]),
+            ],
+            Files: ["reliability-plan.pdf", "sla-targets.xlsx", "incident-runbook.md"]),
         new(
             "Billing Insights Launch",
             "Give finance and account teams clearer subscription, invoice, and usage signals before renewal conversations.",
@@ -276,7 +279,8 @@ public static class SeedData
                     "Duplicate events are idempotent now. Timeout retry still needs one more staging run.",
                     ["qa", "backend"])
             ],
-            Status: ProjectStatus.Planning),
+            Status: ProjectStatus.Planning,
+            Files: ["launch-brief.pdf", "metric-definitions.xlsx", "finance-signoff.md"]),
         new(
             "Mobile Field Updates",
             "Improve mobile task updates for field teams with offline-friendly notes, attachments, and status sync.",
@@ -334,7 +338,8 @@ public static class SeedData
                     "Background refresh no longer clears draft notes. This is ready for the field pilot.",
                     ["qa", "frontend"])
             ],
-            Status: ProjectStatus.OnHold),
+            Status: ProjectStatus.OnHold,
+            Files: ["product-brief.pdf", "offline-sync-spec.md", "field-test-plan.xlsx"]),
         new(
             "Partner Integrations Hub",
             "Centralize partner configuration, onboarding status, and integration health signals.",
@@ -392,7 +397,8 @@ public static class SeedData
                     "This checklist should sit in the launch runbook. Add the production credential owner field.",
                     ["security", "docs"])
             ],
-            Status: ProjectStatus.Planning),
+            Status: ProjectStatus.Planning,
+            Files: ["integration-overview.pdf", "partner-states.xlsx", "security-checklist.md"]),
         new(
             "Data Visibility Upgrade",
             "Improve reporting confidence with clearer dashboard metrics, activity filters, and export controls.",
@@ -450,7 +456,8 @@ public static class SeedData
                     "Mention the dashboard definition audit; customers have been asking how the totals are calculated.",
                     ["docs", "product"])
             ],
-            Status: ProjectStatus.Completed),
+            Status: ProjectStatus.Completed,
+            Files: ["reporting-brief.pdf", "export-contract.xlsx", "release-notes.md"]),
         new(
             "Security and Compliance Readiness",
             "Prepare project workflows for enterprise security reviews with clearer access, audit, and retention controls.",
@@ -507,7 +514,8 @@ public static class SeedData
                     "jeremy.demo",
                     "Evidence packet is ready for the first customer review. Keep the audit samples current after launch.",
                     ["security", "docs"])
-            ])
+            ],
+            Files: ["compliance-overview.pdf", "permissions-matrix.xlsx", "evidence-index.md"])
     ];
 
     public static async Task InitializeAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
@@ -562,6 +570,7 @@ public static class SeedData
         foreach (var entry in projectEntries)
         {
             AddProjectMembers(db, entry, usersByLocalPart);
+            AddProjectFiles(db, entry, usersByLocalPart);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -637,6 +646,37 @@ public static class SeedData
             AuditAction.Created,
             nameof(Project),
             $"{admin.DisplayName} opened the {entry.Project.Name} initiative and added the delivery team."));
+    }
+
+    private static void AddProjectFiles(
+        ApplicationDbContext db,
+        ProjectEntry entry,
+        IReadOnlyDictionary<string, User> usersByLocalPart)
+    {
+        var files = entry.Seed.Files;
+        if (files is null || files.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var fileName in files)
+        {
+            db.Attachments.Add(Attachment.ForProject(
+                entry.Project.Id,
+                fileName,
+                ContentTypeFor(fileName),
+                32_000 + fileName.Length * 900,
+                $"demo/projects/{entry.Project.Id}/{fileName}"));
+        }
+
+        var admin = usersByLocalPart[DemoSessionConstants.AdminEmailLocalPart];
+        db.AuditLogs.Add(new AuditLog(
+            entry.Project.Id,
+            null,
+            admin.Id,
+            AuditAction.Created,
+            nameof(Attachment),
+            $"{admin.DisplayName} added {files.Length} reference files to {entry.Project.Name}."));
     }
 
     private static void AddTaskDetails(
@@ -784,7 +824,8 @@ public static class SeedData
         string Description,
         string[] MemberLocalParts,
         TaskSeed[] Tasks,
-        ProjectStatus Status = ProjectStatus.Active);
+        ProjectStatus Status = ProjectStatus.Active,
+        string[]? Files = null);
 
     private sealed record TaskSeed(
         string Title,
