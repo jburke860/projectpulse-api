@@ -5,6 +5,12 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? import.meta.env.VITE_API_UR
 
 export const DEMO_SESSION_HEADER = 'X-ProjectPulse-Demo-Session'
 export const DEMO_SESSION_STORAGE_KEY = 'projectpulse.demoSessionId'
+export const DEMO_SESSION_DETAILS_STORAGE_KEY = 'projectpulse.demoSessionDetails'
+
+export interface StoredDemoSessionDetails {
+  userId: string
+  expiresAtUtc: string
+}
 
 export const api = axios.create({
   baseURL,
@@ -34,6 +40,23 @@ export function setStoredDemoSessionId(sessionId: string) {
 export function clearStoredDemoSessionId() {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY)
+  window.localStorage.removeItem(DEMO_SESSION_DETAILS_STORAGE_KEY)
+}
+
+export function getStoredDemoSessionDetails(): StoredDemoSessionDetails | null {
+  if (typeof window === 'undefined') return null
+  const raw = window.localStorage.getItem(DEMO_SESSION_DETAILS_STORAGE_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as StoredDemoSessionDetails
+  } catch {
+    return null
+  }
+}
+
+export function setStoredDemoSessionDetails(details: StoredDemoSessionDetails) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(DEMO_SESSION_DETAILS_STORAGE_KEY, JSON.stringify(details))
 }
 
 export function getApiDocsUrl() {

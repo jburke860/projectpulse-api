@@ -5,6 +5,10 @@ export interface DemoSessionContextValue {
   clearCurrentSession: () => void
   isStartingSession: boolean
   sessionId: string
+  /** Session user's id; empty for sessions stored before this field existed. */
+  userId: string
+  /** ISO expiry of the demo session, if known. */
+  expiresAtUtc: string | null
   startNewSession: () => Promise<boolean>
 }
 

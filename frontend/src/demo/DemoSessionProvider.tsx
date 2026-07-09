@@ -3,8 +3,11 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import {
   clearStoredDemoSessionId,
   getApiDocsUrl,
+  getStoredDemoSessionDetails,
   getStoredDemoSessionId,
+  setStoredDemoSessionDetails,
   setStoredDemoSessionId,
+  type StoredDemoSessionDetails,
 } from '../api/client'
 import { createDemoSession } from '../api/queries'
 import { Button } from '../components/ui'
@@ -21,6 +24,9 @@ interface DemoSessionProviderProps {
 export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
   const queryClient = useQueryClient()
   const [sessionId, setSessionId] = useState(() => getStoredDemoSessionId() ?? '')
+  const [sessionDetails, setSessionDetails] = useState<StoredDemoSessionDetails | null>(() =>
+    getStoredDemoSessionDetails(),
+  )
   const [hasEnteredSession, setHasEnteredSession] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +55,9 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
     try {
       const session = await createDemoSession()
       storeSession(session.sessionId)
+      const details = { userId: session.userId, expiresAtUtc: session.expiresAtUtc }
+      setStoredDemoSessionDetails(details)
+      setSessionDetails(details)
       setHasEnteredSession(true)
       return true
     } catch {
@@ -74,8 +83,16 @@ export function DemoSessionProvider({ children }: DemoSessionProviderProps) {
   }, [queryClient, refreshToDemoLanding])
 
   const value = useMemo(
-    () => ({ apiDocsUrl, clearCurrentSession, isStartingSession: isStarting, sessionId, startNewSession }),
-    [apiDocsUrl, clearCurrentSession, isStarting, sessionId, startNewSession],
+    () => ({
+      apiDocsUrl,
+      clearCurrentSession,
+      isStartingSession: isStarting,
+      sessionId,
+      userId: sessionDetails?.userId ?? '',
+      expiresAtUtc: sessionDetails?.expiresAtUtc ?? null,
+      startNewSession,
+    }),
+    [apiDocsUrl, clearCurrentSession, isStarting, sessionId, sessionDetails, startNewSession],
   )
 
   if (!sessionId || !hasEnteredSession) {
