@@ -1,14 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BarChart3, FileText, Settings } from 'lucide-react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Layout } from './components/Layout'
 import { ActivityPage } from './pages/ActivityPage'
 import { CalendarPage } from './pages/CalendarPage'
-import { ComingSoonPage } from './pages/ComingSoonPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DocumentsPage } from './pages/DocumentsPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
+import { ReportsPage } from './pages/ReportsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { TasksPage } from './pages/TasksPage'
 import { TeamsPage } from './pages/TeamsPage'
 import { DemoSessionProvider } from './demo/DemoSessionProvider'
@@ -43,40 +44,10 @@ export default function App() {
               <Route path="activity" element={<ActivityPage />} />
               <Route path="tasks" element={<TasksPage />} />
               <Route path="calendar" element={<CalendarPage />} />
-              <Route
-                path="documents"
-                element={
-                  <ComingSoonPage
-                    icon={FileText}
-                    eyebrow="Files"
-                    title="Documents"
-                    description="All files shared across the workspace."
-                  />
-                }
-              />
+              <Route path="documents" element={<DocumentsPage />} />
               <Route path="teams" element={<TeamsPage />} />
-              <Route
-                path="reports"
-                element={
-                  <ComingSoonPage
-                    icon={BarChart3}
-                    eyebrow="Insights"
-                    title="Reports"
-                    description="Delivery health and progress across projects."
-                  />
-                }
-              />
-              <Route
-                path="settings"
-                element={
-                  <ComingSoonPage
-                    icon={Settings}
-                    eyebrow="Workspace"
-                    title="Settings"
-                    description="Session details and workspace preferences."
-                  />
-                }
-              />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

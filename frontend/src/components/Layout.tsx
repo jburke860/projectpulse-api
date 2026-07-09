@@ -26,6 +26,7 @@ import { useDemoSession } from '../demo/DemoSessionContext'
 import { cn } from '../lib/cn'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { Avatar } from './Avatar'
+import { CommandPalette } from './CommandPalette'
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -263,6 +264,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen">
+      <CommandPalette />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-white/10 bg-[#0a0d13]/90 lg:block">
         <SidebarContent />
       </aside>
