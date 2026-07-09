@@ -9,10 +9,8 @@ interface LabelChipProps {
 
 export function LabelChip({ label, onRemove, disabled }: LabelChipProps) {
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.65rem] font-bold"
-      style={{ backgroundColor: `${label.color}26`, color: label.color }}
-    >
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/[0.06] px-2 py-0.5 text-[0.65rem] font-semibold text-[#cbd5e1]">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: label.color }} aria-hidden />
       {label.name}
       {onRemove && (
         <button

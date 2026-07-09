@@ -194,6 +194,8 @@ function updateTaskCaches(
   queryClient.setQueryData<Task[]>(queryKeys.tasks(), (tasks) =>
     replaceTask(tasks, updatedTask),
   )
+  // Refetch the detail so server-derived fields (edit attribution) refresh.
+  queryClient.invalidateQueries({ queryKey: queryKeys.task(updatedTask.id) })
 }
 
 function toastMutationError(error: unknown) {

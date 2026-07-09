@@ -567,10 +567,14 @@ public static class SeedData
         db.Projects.AddRange(projectEntries.Select(entry => entry.Project));
         await db.SaveChangesAsync(cancellationToken);
 
-        foreach (var entry in projectEntries)
+        var now = DateTime.UtcNow;
+        for (var p = 0; p < projectEntries.Count; p++)
         {
-            AddProjectMembers(db, entry, usersByLocalPart);
-            AddProjectFiles(db, entry, usersByLocalPart);
+            var entry = projectEntries[p];
+            var projectCreatedAt = now.AddDays(-56 + p * 2);
+            SetCreatedAt(db, entry.Project, projectCreatedAt);
+            AddProjectMembers(db, entry, usersByLocalPart, projectCreatedAt);
+            AddProjectFiles(db, entry, usersByLocalPart, projectCreatedAt);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -614,9 +618,9 @@ public static class SeedData
         db.Tasks.AddRange(tasks.Select(entry => entry.Task));
         await db.SaveChangesAsync(cancellationToken);
 
-        foreach (var entry in tasks)
+        for (var o = 0; o < tasks.Count; o++)
         {
-            AddTaskDetails(db, entry, usersByLocalPart, labelsByProject[entry.Project.Id]);
+            AddTaskDetails(db, tasks[o], usersByLocalPart, labelsByProject[tasks[o].Project.Id], now, o);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -625,7 +629,8 @@ public static class SeedData
     private static void AddProjectMembers(
         ApplicationDbContext db,
         ProjectEntry entry,
-        IReadOnlyDictionary<string, User> usersByLocalPart)
+        IReadOnlyDictionary<string, User> usersByLocalPart,
+        DateTime projectCreatedAt)
     {
         foreach (var (localPart, index) in entry.Seed.MemberLocalParts.Select((localPart, index) => (localPart, index)))
         {
@@ -639,19 +644,22 @@ public static class SeedData
         }
 
         var admin = usersByLocalPart[DemoSessionConstants.AdminEmailLocalPart];
-        db.AuditLogs.Add(new AuditLog(
+        var openedLog = new AuditLog(
             entry.Project.Id,
             null,
             admin.Id,
             AuditAction.Created,
             nameof(Project),
-            $"{admin.DisplayName} opened the {entry.Project.Name} initiative and added the delivery team."));
+            $"{admin.DisplayName} opened the {entry.Project.Name} initiative and added the delivery team.");
+        db.AuditLogs.Add(openedLog);
+        SetCreatedAt(db, openedLog, projectCreatedAt);
     }
 
     private static void AddProjectFiles(
         ApplicationDbContext db,
         ProjectEntry entry,
-        IReadOnlyDictionary<string, User> usersByLocalPart)
+        IReadOnlyDictionary<string, User> usersByLocalPart,
+        DateTime projectCreatedAt)
     {
         var files = entry.Seed.Files;
         if (files is null || files.Length == 0)
@@ -659,77 +667,92 @@ public static class SeedData
             return;
         }
 
+        var filesAddedAt = projectCreatedAt.AddDays(1);
         foreach (var fileName in files)
         {
-            db.Attachments.Add(Attachment.ForProject(
+            var attachment = Attachment.ForProject(
                 entry.Project.Id,
                 fileName,
                 ContentTypeFor(fileName),
                 32_000 + fileName.Length * 900,
-                $"demo/projects/{entry.Project.Id}/{fileName}"));
+                $"demo/projects/{entry.Project.Id}/{fileName}");
+            db.Attachments.Add(attachment);
+            SetCreatedAt(db, attachment, filesAddedAt);
         }
 
         var admin = usersByLocalPart[DemoSessionConstants.AdminEmailLocalPart];
-        db.AuditLogs.Add(new AuditLog(
+        var filesLog = new AuditLog(
             entry.Project.Id,
             null,
             admin.Id,
             AuditAction.Created,
             nameof(Attachment),
-            $"{admin.DisplayName} added {files.Length} reference files to {entry.Project.Name}."));
+            $"{admin.DisplayName} added {files.Length} reference files to {entry.Project.Name}.");
+        db.AuditLogs.Add(filesLog);
+        SetCreatedAt(db, filesLog, filesAddedAt);
     }
 
     private static void AddTaskDetails(
         ApplicationDbContext db,
         TaskEntry entry,
         IReadOnlyDictionary<string, User> usersByLocalPart,
-        IReadOnlyDictionary<string, Label> labelsByName)
+        IReadOnlyDictionary<string, Label> labelsByName,
+        DateTime now,
+        int ordinal)
     {
         var task = entry.Task;
         var seed = entry.Seed;
         var admin = usersByLocalPart[DemoSessionConstants.AdminEmailLocalPart];
 
-        db.AuditLogs.Add(new AuditLog(
-            entry.Project.Id,
-            task.Id,
-            admin.Id,
-            AuditAction.Created,
-            nameof(TaskItem),
-            $"{admin.DisplayName} created \"{task.Title}\" for {entry.Project.Name}."));
+        // Spread task history across the past so demo timestamps look realistic
+        // (created weeks ago, edited days ago) instead of all reading "just now".
+        var latest = now.AddHours(-2);
+        var createdAt = now.AddDays(-45 + ordinal).AddHours(-(ordinal * 7 % 41));
+        var assignedAt = Min(createdAt.AddMinutes(25 + ordinal % 40), latest);
+        var statusAt = Min(createdAt.AddDays(1 + ordinal % 4).AddHours(ordinal % 13), latest);
+        DateTime? lastTouch = null;
+
+        SetCreatedAt(db, task, createdAt);
+
+        var createdLog = new AuditLog(entry.Project.Id, task.Id, admin.Id, AuditAction.Created,
+            nameof(TaskItem), $"{admin.DisplayName} created \"{task.Title}\" for {entry.Project.Name}.");
+        db.AuditLogs.Add(createdLog);
+        SetCreatedAt(db, createdLog, createdAt);
 
         if (seed.AssigneeLocalPart is not null)
         {
             var assignee = usersByLocalPart[seed.AssigneeLocalPart];
-            db.AuditLogs.Add(new AuditLog(
-                entry.Project.Id,
-                task.Id,
-                admin.Id,
-                AuditAction.Assigned,
-                nameof(TaskItem),
-                $"{admin.DisplayName} assigned \"{task.Title}\" to {assignee.DisplayName}."));
+            var assignedLog = new AuditLog(entry.Project.Id, task.Id, admin.Id, AuditAction.Assigned,
+                nameof(TaskItem), $"{admin.DisplayName} assigned \"{task.Title}\" to {assignee.DisplayName}.");
+            db.AuditLogs.Add(assignedLog);
+            SetCreatedAt(db, assignedLog, assignedAt);
+            lastTouch = assignedAt;
         }
 
         if (seed.Status != TaskStatus.Open)
         {
             var actor = seed.AssigneeLocalPart is not null ? usersByLocalPart[seed.AssigneeLocalPart] : admin;
-            db.AuditLogs.Add(new AuditLog(
-                entry.Project.Id,
-                task.Id,
-                actor.Id,
-                AuditAction.StatusChanged,
-                nameof(TaskItem),
-                $"{actor.DisplayName} moved \"{task.Title}\" to {FormatStatus(seed.Status)}."));
+            var statusLog = new AuditLog(entry.Project.Id, task.Id, actor.Id, AuditAction.StatusChanged,
+                nameof(TaskItem), $"{actor.DisplayName} moved \"{task.Title}\" to {FormatStatus(seed.Status)}.");
+            db.AuditLogs.Add(statusLog);
+            SetCreatedAt(db, statusLog, statusAt);
+            lastTouch = statusAt;
         }
 
+        if (lastTouch.HasValue)
+        {
+            SetUpdatedAt(db, task, lastTouch.Value);
+        }
+
+        var commentAt = Min((lastTouch ?? createdAt).AddHours(3 + ordinal % 9), latest);
         var commentAuthor = usersByLocalPart[seed.CommentAuthorLocalPart];
-        db.Comments.Add(new Comment(task.Id, commentAuthor.Id, seed.Comment));
-        db.AuditLogs.Add(new AuditLog(
-            entry.Project.Id,
-            task.Id,
-            commentAuthor.Id,
-            AuditAction.CommentAdded,
-            nameof(Comment),
-            $"{commentAuthor.DisplayName} commented on \"{task.Title}\"."));
+        var comment = new Comment(task.Id, commentAuthor.Id, seed.Comment);
+        db.Comments.Add(comment);
+        SetCreatedAt(db, comment, commentAt);
+        var commentLog = new AuditLog(entry.Project.Id, task.Id, commentAuthor.Id, AuditAction.CommentAdded,
+            nameof(Comment), $"{commentAuthor.DisplayName} commented on \"{task.Title}\".");
+        db.AuditLogs.Add(commentLog);
+        SetCreatedAt(db, commentLog, commentAt);
 
         foreach (var labelName in seed.LabelNames)
         {
@@ -738,14 +761,24 @@ public static class SeedData
 
         if (seed.AttachmentFileName is not null)
         {
-            db.Attachments.Add(new Attachment(
+            var attachment = new Attachment(
                 task.Id,
                 seed.AttachmentFileName,
                 ContentTypeFor(seed.AttachmentFileName),
                 48_000 + seed.AttachmentFileName.Length * 1_024,
-                $"demo/tasks/{task.Id}/{seed.AttachmentFileName}"));
+                $"demo/tasks/{task.Id}/{seed.AttachmentFileName}");
+            db.Attachments.Add(attachment);
+            SetCreatedAt(db, attachment, createdAt.AddHours(2));
         }
     }
+
+    private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
+
+    private static void SetCreatedAt(ApplicationDbContext db, object entity, DateTime whenUtc) =>
+        db.Entry(entity).Property("CreatedAtUtc").CurrentValue = whenUtc;
+
+    private static void SetUpdatedAt(ApplicationDbContext db, object entity, DateTime whenUtc) =>
+        db.Entry(entity).Property("UpdatedAtUtc").CurrentValue = whenUtc;
 
     private static string ContentTypeFor(string fileName)
     {
