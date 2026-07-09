@@ -1,3 +1,8 @@
 namespace ProjectPulse.Application.Users.Dtos;
 
-public record UserDto(Guid Id, string DisplayName, string Email);
+public record UserDto(
+    Guid Id,
+    string DisplayName,
+    string Email,
+    int ProjectCount,
+    int AssignedTaskCount);

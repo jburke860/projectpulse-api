@@ -42,6 +42,10 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
     {
         await EnsureCanManageTasks(command.Request.ProjectId, cancellationToken);
         var assigneeName = await GetProjectMemberDisplayName(command.Request.ProjectId, command.Request.AssigneeId, cancellationToken);
+        var projectName = await _db.Projects
+            .Where(p => p.Id == command.Request.ProjectId)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
 
         var priority = Enum.Parse<TaskPriority>(command.Request.Priority, true);
         var task = new TaskItem(command.Request.ProjectId, command.Request.Title, command.Request.Description, priority, command.Request.DueDateUtc);
@@ -50,7 +54,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
         await _audit.LogAsync(task.ProjectId, task.Id, AuditAction.Created, nameof(TaskItem), $"Task '{task.Title}' created.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Map(task, assigneeName);
+        return Map(task, assigneeName, projectName: projectName);
     }
 
     private async Task EnsureCanManageTasks(Guid projectId, CancellationToken cancellationToken)
@@ -87,8 +91,9 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
         return assigneeName;
     }
 
-    internal static TaskDto Map(TaskItem task, string? assigneeName, string? lastEditedByName = null) =>
-        new(task.Id, task.ProjectId, task.Title, task.Description, task.Status.ToString(), task.Priority.ToString(),
+    internal static TaskDto Map(TaskItem task, string? assigneeName, string? lastEditedByName = null, string? projectName = null) =>
+        new(task.Id, task.ProjectId, projectName ?? task.Project?.Name ?? string.Empty,
+            task.Title, task.Description, task.Status.ToString(), task.Priority.ToString(),
             task.DueDateUtc, task.AssigneeId, assigneeName, task.CreatedAtUtc,
             task.TaskLabels
                 .Where(tl => tl.Label != null)

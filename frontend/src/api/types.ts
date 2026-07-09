@@ -66,6 +66,7 @@ export interface Attachment {
 export interface Task {
   id: string
   projectId: string
+  projectName: string
   title: string
   description: string | null
   status: string
@@ -102,11 +103,20 @@ export interface AuditLog {
   createdAtUtc: string
 }
 
+export interface StatusCount {
+  status: string
+  count: number
+}
+
 export interface Dashboard {
   totalProjects: number
   openTasks: number
   completedTasks: number
   overdueTasks: number
+  teamMemberCount: number
+  totalTasks: number
+  tasksByStatus: StatusCount[]
+  projectsByStatus: StatusCount[]
   recentActivity: AuditLog[]
 }
 
@@ -114,4 +124,18 @@ export interface User {
   id: string
   displayName: string
   email: string
+  projectCount: number
+  assignedTaskCount: number
+}
+
+export interface WorkspaceAttachment {
+  id: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  createdAtUtc: string
+  projectId: string
+  projectName: string
+  taskId: string | null
+  taskTitle: string | null
 }

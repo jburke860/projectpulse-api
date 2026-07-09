@@ -72,6 +72,7 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, PagedResult<T
             .Select(t => new TaskDto(
                 t.Id,
                 t.ProjectId,
+                t.Project.Name,
                 t.Title,
                 t.Description,
                 t.Status.ToString(),

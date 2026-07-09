@@ -16,6 +16,7 @@ public record AttachmentDownloadDto(string FileName, string ContentType, Stream 
 public record TaskDto(
     Guid Id,
     Guid ProjectId,
+    string ProjectName,
     string Title,
     string? Description,
     string Status,

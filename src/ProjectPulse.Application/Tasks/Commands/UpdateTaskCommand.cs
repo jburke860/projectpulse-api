@@ -39,6 +39,7 @@ public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskD
         var task = await _db.Tasks.Include(t => t.Assignee)
             .Include(t => t.TaskLabels).ThenInclude(tl => tl.Label)
             .Include(t => t.Attachments)
+            .Include(t => t.Project)
             .FirstOrDefaultAsync(t => t.Id == command.TaskId, cancellationToken)
             ?? throw new NotFoundException($"Task {command.TaskId} was not found.");
 

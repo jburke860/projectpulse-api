@@ -4,6 +4,7 @@ using ProjectPulse.Application.Audit.Dtos;
 using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Dashboard.Dtos;
+using ProjectPulse.Domain.Enums;
 using TaskStatus = ProjectPulse.Domain.Enums.TaskStatus;
 
 namespace ProjectPulse.Application.Dashboard.Queries;
@@ -43,11 +44,38 @@ public class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, Dashb
                 a.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 
+        var taskStatusCounts = await tasks
+            .GroupBy(t => t.Status)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var projectStatusCounts = await projects
+            .GroupBy(p => p.Status)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        // Every enum value is present so the frontend never has to fill gaps.
+        var tasksByStatus = Enum.GetValues<TaskStatus>()
+            .Select(status => new StatusCountDto(
+                status.ToString(),
+                taskStatusCounts.FirstOrDefault(c => c.Key == status)?.Count ?? 0))
+            .ToList();
+
+        var projectsByStatus = Enum.GetValues<ProjectStatus>()
+            .Select(status => new StatusCountDto(
+                status.ToString(),
+                projectStatusCounts.FirstOrDefault(c => c.Key == status)?.Count ?? 0))
+            .ToList();
+
         return new DashboardDto(
             await projects.CountAsync(cancellationToken),
             await tasks.CountAsync(t => t.Status == TaskStatus.Open, cancellationToken),
             await tasks.CountAsync(t => t.Status == TaskStatus.Done, cancellationToken),
             await tasks.CountAsync(t => t.DueDateUtc != null && t.DueDateUtc < today && t.Status != TaskStatus.Done, cancellationToken),
+            await _db.Users.AsNoTracking().VisibleTo(_currentUser.UserId).CountAsync(cancellationToken),
+            taskStatusCounts.Sum(c => c.Count),
+            tasksByStatus,
+            projectsByStatus,
             recentActivity);
     }
 }
