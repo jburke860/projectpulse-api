@@ -26,7 +26,9 @@ public record TaskDto(
     DateTime CreatedAtUtc,
     IReadOnlyList<LabelDto> Labels,
     int AttachmentCount,
-    IReadOnlyList<string> AttachmentFileNames);
+    IReadOnlyList<string> AttachmentFileNames,
+    DateTime? UpdatedAtUtc = null,
+    string? LastEditedByName = null);
 
 public record CreateTaskRequest(
     Guid ProjectId,

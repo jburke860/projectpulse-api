@@ -87,7 +87,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
         return assigneeName;
     }
 
-    internal static TaskDto Map(TaskItem task, string? assigneeName) =>
+    internal static TaskDto Map(TaskItem task, string? assigneeName, string? lastEditedByName = null) =>
         new(task.Id, task.ProjectId, task.Title, task.Description, task.Status.ToString(), task.Priority.ToString(),
             task.DueDateUtc, task.AssigneeId, assigneeName, task.CreatedAtUtc,
             task.TaskLabels
@@ -99,5 +99,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
             task.Attachments
                 .OrderByDescending(a => a.CreatedAtUtc)
                 .Select(a => a.FileName)
-                .ToList());
+                .ToList(),
+            task.UpdatedAtUtc,
+            lastEditedByName);
 }

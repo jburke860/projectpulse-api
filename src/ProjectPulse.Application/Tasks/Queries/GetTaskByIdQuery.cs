@@ -5,6 +5,7 @@ using ProjectPulse.Application.Common.Extensions;
 using ProjectPulse.Application.Common.Interfaces;
 using ProjectPulse.Application.Tasks.Commands;
 using ProjectPulse.Application.Tasks.Dtos;
+using ProjectPulse.Domain.Enums;
 
 namespace ProjectPulse.Application.Tasks.Queries;
 
@@ -31,6 +32,19 @@ public class GetTaskByIdQueryHandler : IRequestHandler<GetTaskByIdQuery, TaskDto
             .FirstOrDefaultAsync(t => t.Id == query.Id, cancellationToken)
             ?? throw new NotFoundException($"Task {query.Id} was not found.");
 
-        return CreateTaskCommandHandler.Map(task, task.Assignee?.DisplayName);
+        string? lastEditedByName = null;
+        if (task.UpdatedAtUtc.HasValue)
+        {
+            lastEditedByName = await _db.AuditLogs.AsNoTracking()
+                .Where(a => a.TaskId == task.Id &&
+                    (a.Action == AuditAction.Updated ||
+                        a.Action == AuditAction.StatusChanged ||
+                        a.Action == AuditAction.Assigned))
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .Select(a => a.Actor.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return CreateTaskCommandHandler.Map(task, task.Assignee?.DisplayName, lastEditedByName);
     }
 }

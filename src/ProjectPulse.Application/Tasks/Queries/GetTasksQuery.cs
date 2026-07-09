@@ -88,7 +88,9 @@ public class GetTasksQueryHandler : IRequestHandler<GetTasksQuery, PagedResult<T
                 t.Attachments
                     .OrderByDescending(a => a.CreatedAtUtc)
                     .Select(a => a.FileName)
-                    .ToList()))
+                    .ToList(),
+                t.UpdatedAtUtc,
+                null))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<TaskDto>(items, totalCount, page, pageSize);

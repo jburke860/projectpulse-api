@@ -74,6 +74,8 @@ export interface Task {
   assigneeId: string | null
   assigneeName: string | null
   createdAtUtc: string
+  updatedAtUtc: string | null
+  lastEditedByName: string | null
   labels: Label[]
   attachmentCount: number
   attachmentFileNames: string[]
