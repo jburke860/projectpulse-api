@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   addTaskComment,
@@ -32,7 +32,7 @@ import { LabelChip } from '../components/LabelChip'
 import { CardSkeleton, Skeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { TaskBoard } from '../components/TaskBoard'
-import { TaskPanel } from '../components/TaskPanel'
+import { TaskPanel, type FocusComment } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
 import { getMutationErrorMessage } from '../lib/errors'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
@@ -76,6 +76,7 @@ function formatTaskFileSummary(task: { attachmentCount: number; attachmentFileNa
 export function ProjectDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [filterStatus, setFilterStatus] = useState('')
@@ -157,6 +158,8 @@ export function ProjectDetailPage() {
   )
   const isCreatingTask = createTask.isPending || isFinalizingTask
   const selectedTaskId = searchParams.get('taskId')
+  const stateFocusComment = (location.state as { focusComment?: FocusComment } | null)?.focusComment ?? null
+  const focusComment = stateFocusComment && stateFocusComment.taskId === selectedTaskId ? stateFocusComment : null
   const hasActiveFilters = Boolean(filterStatus || filterPriority || filterAssigneeId || searchText)
   const visibleTasks = searchText
     ? tasks.filter((task) =>
@@ -902,7 +905,12 @@ export function ProjectDetailPage() {
             aria-label="Close task panel"
             onClick={() => setSearchParams({}, { replace: true })}
           />
-          <TaskPanel taskId={selectedTaskId} projectId={id} onClose={() => setSearchParams({}, { replace: true })} />
+          <TaskPanel
+            taskId={selectedTaskId}
+            projectId={id}
+            focusComment={focusComment}
+            onClose={() => setSearchParams({}, { replace: true })}
+          />
         </>
       )}
 

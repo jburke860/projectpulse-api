@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { CalendarDays, Download, Paperclip, Pencil, PenLine, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Task } from '../api/types'
@@ -30,11 +30,33 @@ import {
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { LabelChip } from './LabelChip'
 import { Badge, Button } from './ui'
+import type { Comment } from '../api/types'
+
+export interface FocusComment {
+  taskId: string
+  actorId: string
+  atUtc: string
+}
 
 interface TaskPanelProps {
   taskId: string
   projectId: string
   onClose: () => void
+  focusComment?: FocusComment | null
+}
+
+function findMatchingComment(focus: FocusComment, comments: Comment[]): Comment | null {
+  if (comments.length === 0) return null
+  const target = new Date(focus.atUtc).getTime()
+  const sameAuthor = comments.filter((c) => c.authorId === focus.actorId)
+  const candidates = sameAuthor.length ? sameAuthor : comments
+  return (
+    [...candidates].sort(
+      (a, b) =>
+        Math.abs(new Date(a.createdAtUtc).getTime() - target) -
+        Math.abs(new Date(b.createdAtUtc).getTime() - target),
+    )[0] ?? null
+  )
 }
 
 function formatDate(iso: string | null) {
@@ -63,7 +85,7 @@ function formatFileSize(bytes: number) {
   return `${bytes} B`
 }
 
-export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
+export function TaskPanel({ taskId, projectId, onClose, focusComment }: TaskPanelProps) {
   const { data: task, isLoading } = useTask(taskId)
   useEscapeToClose(onClose)
 
@@ -75,7 +97,16 @@ export function TaskPanel({ taskId, projectId, onClose }: TaskPanelProps) {
     )
   }
 
-  return <LoadedTaskPanel key={task.id} task={task} taskId={taskId} projectId={projectId} onClose={onClose} />
+  return (
+    <LoadedTaskPanel
+      key={task.id}
+      task={task}
+      taskId={taskId}
+      projectId={projectId}
+      onClose={onClose}
+      focusComment={focusComment}
+    />
+  )
 }
 
 interface LoadedTaskPanelProps extends TaskPanelProps {
@@ -91,7 +122,7 @@ function FactRow({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelProps) {
+function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment }: LoadedTaskPanelProps) {
   const { data: comments = [] } = useTaskComments(taskId)
   const { data: members = [] } = useProjectMembers(projectId)
   const { data: projectLabels = [] } = useProjectLabels(projectId)
@@ -112,6 +143,26 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
 
   const [isEditing, setIsEditing] = useState(false)
   const [comment, setComment] = useState('')
+  const focusedRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!focusComment || focusComment.taskId !== taskId) return
+    if (focusedRef.current === focusComment.atUtc) return
+    const target = findMatchingComment(focusComment, comments)
+    if (!target) return
+
+    focusedRef.current = focusComment.atUtc
+    const element = document.getElementById(`pp-comment-${target.id}`)
+    if (!element) return
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    element.classList.add('pp-comment-highlight')
+    const timer = setTimeout(() => element.classList.remove('pp-comment-highlight'), 2600)
+    return () => {
+      clearTimeout(timer)
+      element.classList.remove('pp-comment-highlight')
+    }
+  }, [focusComment, comments, taskId])
   const [edit, setEdit] = useState<Partial<Task>>({
     title: task.title,
     description: task.description ?? '',
@@ -450,7 +501,11 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose }: LoadedTaskPanelPr
           )}
           <ul className="mt-3 space-y-2">
             {comments.map((c) => (
-              <li key={c.id} className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm">
+              <li
+                key={c.id}
+                id={`pp-comment-${c.id}`}
+                className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm transition"
+              >
                 <p className="text-[#f8fafc]">{c.body}</p>
                 <p className="mt-1 text-xs text-[#8e99ad]">{c.authorName}</p>
               </li>
