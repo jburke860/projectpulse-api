@@ -5,7 +5,7 @@ interface StatCardProps {
   label: string
   value: number | string
   hint?: string
-  accent?: 'ember' | 'amber' | 'sunset' | 'rose'
+  accent?: 'ember' | 'amber' | 'sunset' | 'rose' | 'violet'
   icon: LucideIcon
 }
 
@@ -25,6 +25,10 @@ const accents = {
   rose: {
     icon: 'bg-gradient-to-br from-[#ef4444] to-[#fb7185] text-white shadow-[0_12px_28px_rgba(239,68,68,0.18)]',
     marker: 'bg-[#fb7185]',
+  },
+  violet: {
+    icon: 'bg-gradient-to-br from-[#7c3aed] to-[#a78bfa] text-white shadow-[0_12px_28px_rgba(124,58,237,0.2)]',
+    marker: 'bg-[#a78bfa]',
   },
 }
 

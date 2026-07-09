@@ -3,12 +3,13 @@ import { Activity, ArrowUpRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTask, useTaskComments } from '../api/queries'
 import type { AuditLog, Comment } from '../api/types'
+import { formatActivityTime } from '../lib/dates'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { EmptyState } from './EmptyState'
 import { Badge } from './ui'
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleString()
+  return formatActivityTime(iso)
 }
 
 function actionLabel(action: string) {

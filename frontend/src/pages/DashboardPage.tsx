@@ -1,26 +1,220 @@
+import { useState } from 'react'
 import {
   Activity,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Clock,
-  ExternalLink,
   FolderKanban,
-  LayoutGrid,
+  PieChart,
+  Plus,
   SquareCheck,
+  Users,
   Zap,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useDashboard } from '../api/queries'
+import { useDashboard, useProjects, useTasks, useUsers } from '../api/queries'
+import type { Task } from '../api/types'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { Avatar } from '../components/Avatar'
+import { DonutChart, type DonutSegment } from '../components/DonutChart'
 import { DashboardSkeleton } from '../components/Skeleton'
 import { StatCard } from '../components/StatCard'
-import { Button, Card } from '../components/ui'
+import { Badge, Button, Card } from '../components/ui'
 import { useDemoSession } from '../demo/DemoSessionContext'
 import { DEMO_SESSION_TEMPORARY_COPY } from '../demo/sessionConfig'
+import { formatShortDate } from '../lib/dates'
+import { getGreeting } from '../lib/greeting'
+import { presenceFor } from '../lib/presence'
+import {
+  formatTaskStatus,
+  isTaskOverdue,
+  taskPriorityTones,
+  taskStatusTones,
+} from '../lib/tasks'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
+
+const projectStatusColors: Record<string, string> = {
+  Planning: '#38bdf8',
+  Active: '#ff7b22',
+  OnHold: '#f59e0b',
+  Completed: '#22c55e',
+}
+
+const projectStatusLabels: Record<string, string> = {
+  Planning: 'Planning',
+  Active: 'Active',
+  OnHold: 'On Hold',
+  Completed: 'Completed',
+}
+
+const myTasksTabs = ['All Tasks', 'My Tasks', 'Overdue'] as const
+type MyTasksTab = (typeof myTasksTabs)[number]
+
+function QuickAddMenu() {
+  const navigate = useNavigate()
+  const { data: projects = [] } = useProjects()
+  const [open, setOpen] = useState(false)
+  useEscapeToClose(() => setOpen(false), open)
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="pp-button-secondary"
+      >
+        <Zap className="h-4 w-4" aria-hidden />
+        Quick Add
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close quick add"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <div className="pp-card absolute right-0 top-full z-50 mt-2 w-64 p-2 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                navigate('/projects?create=1')
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#f8fafc] transition hover:bg-white/[0.06]"
+            >
+              <FolderKanban className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+              New project
+            </button>
+            <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+              New task in...
+            </p>
+            <div className="max-h-52 overflow-y-auto">
+              {projects.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false)
+                    navigate(`/projects/${project.id}?newTask=1`)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#a9b1c0] transition hover:bg-white/[0.06] hover:text-[#f8fafc]"
+                >
+                  <SquareCheck className="h-4 w-4 shrink-0 text-[#687387]" aria-hidden />
+                  <span className="truncate">{project.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<MyTasksTab>('All Tasks')
+
+  const filtered = tasks.filter((task) => {
+    if (tab === 'My Tasks') return userId !== '' && task.assigneeId === userId
+    if (tab === 'Overdue') return isTaskOverdue(task)
+    return true
+  })
+  const visible = filtered.slice(0, 6)
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <SquareCheck className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+          <h2 className="text-lg font-bold text-[#f8fafc]">My Tasks</h2>
+        </div>
+        <div className="flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          {myTasksTabs.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={tab === option}
+              onClick={() => setTab(option)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                tab === option
+                  ? 'bg-[#ff7b22]/15 text-[#fff7ed] shadow-[inset_0_0_0_1px_rgba(255,122,34,0.35)]'
+                  : 'text-[#a9b1c0] hover:text-[#f8fafc]'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {visible.length === 0 ? (
+        <p className="mt-5 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-[#8e99ad]">
+          {tab === 'Overdue' ? 'Nothing is overdue. Great job!' : 'No tasks here yet.'}
+        </p>
+      ) : (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[34rem] text-left text-sm">
+            <thead>
+              <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+                <th className="pb-2 pr-3 font-semibold">Task</th>
+                <th className="pb-2 pr-3 font-semibold">Project</th>
+                <th className="pb-2 pr-3 font-semibold">Priority</th>
+                <th className="pb-2 pr-3 font-semibold">Due Date</th>
+                <th className="pb-2 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((task) => {
+                const overdue = isTaskOverdue(task)
+
+                return (
+                  <tr
+                    key={task.id}
+                    onClick={() => navigate(`/projects/${task.projectId}?taskId=${task.id}`)}
+                    className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
+                  >
+                    <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">
+                      {task.title}
+                    </td>
+                    <td className="max-w-[11rem] truncate py-2.5 pr-3 text-[#8e99ad]">{task.projectName}</td>
+                    <td className="py-2.5 pr-3">
+                      <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
+                    </td>
+                    <td className={`whitespace-nowrap py-2.5 pr-3 text-xs ${overdue ? 'font-semibold text-[#fca5a5]' : 'text-[#8e99ad]'}`}>
+                      {task.dueDateUtc ? formatShortDate(task.dueDateUtc) : 'None'}
+                    </td>
+                    <td className="py-2.5">
+                      <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Link
+        to="/tasks"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
+      >
+        View all tasks
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </Link>
+    </Card>
+  )
+}
 
 export function DashboardPage() {
   const { data, isLoading, error } = useDashboard()
-  const { apiDocsUrl, isStartingSession, startNewSession } = useDemoSession()
+  const { data: tasks = [] } = useTasks()
+  const { data: users = [] } = useUsers()
+  const { isStartingSession, startNewSession, userId } = useDemoSession()
   const navigate = useNavigate()
 
   const handleStartNewSession = async () => {
@@ -53,11 +247,21 @@ export function DashboardPage() {
     )
   }
 
+  const completionPercent = data.totalTasks > 0
+    ? Math.round(((data.tasksByStatus.find((s) => s.status === 'Done')?.count ?? 0) / data.totalTasks) * 100)
+    : 0
+  const donutSegments: DonutSegment[] = data.projectsByStatus.map((entry) => ({
+    label: projectStatusLabels[entry.status] ?? entry.status,
+    value: entry.count,
+    color: projectStatusColors[entry.status] ?? '#64748b',
+  }))
+  const topMembers = [...users].sort((a, b) => b.assignedTaskCount - a.assignedTaskCount).slice(0, 5)
+
   return (
     <div className="pp-page-shell">
       <section className="pp-hero-card relative overflow-hidden p-6 sm:p-8">
         <svg
-          className="pointer-events-none absolute right-8 top-1/2 hidden h-20 w-72 -translate-y-1/2 sm:block"
+          className="pointer-events-none absolute right-8 top-6 hidden h-14 w-56 xl:block"
           viewBox="0 0 288 80"
           fill="none"
           aria-hidden
@@ -78,96 +282,156 @@ export function DashboardPage() {
             strokeLinejoin="round"
           />
         </svg>
-        <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">
-              Welcome back, Demo User!
+              {getGreeting()}, Demo User!
             </h1>
             <p className="mt-2 max-w-2xl text-[#cbd5e1]">
-              Here's what's happening across your ProjectPulse workspace.
+              Here's what's happening across your workspace.
             </p>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#8e99ad]">
+            <p className="mt-3 max-w-2xl text-xs leading-5 text-[#8e99ad]">
               {DEMO_SESSION_TEMPORARY_COPY}
             </p>
           </div>
-          <div className="hidden sm:flex">
-            <span className="pp-icon-tile h-16 w-16">
-              <LayoutGrid className="h-7 w-7" aria-hidden />
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to="/projects?create=1" className="pp-button-primary">
+              <Plus className="h-4 w-4" aria-hidden />
+              New Project
+            </Link>
+            <QuickAddMenu />
           </div>
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total projects" value={data.totalProjects} hint="All time" accent="ember" icon={FolderKanban} />
-        <StatCard label="Open tasks" value={data.openTasks} hint="Needs attention" accent="amber" icon={SquareCheck} />
-        <StatCard label="Completed tasks" value={data.completedTasks} hint="All caught up" accent="sunset" icon={CheckCircle2} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard label="Total Projects" value={data.totalProjects} hint="All time" accent="ember" icon={FolderKanban} />
+        <StatCard label="Open Tasks" value={data.openTasks} hint="Needs attention" accent="amber" icon={SquareCheck} />
+        <StatCard label="Completed Tasks" value={data.completedTasks} hint="All caught up" accent="sunset" icon={CheckCircle2} />
         <StatCard
-          label="Overdue tasks"
+          label="Overdue Tasks"
           value={data.overdueTasks}
           hint={data.overdueTasks === 0 ? 'Great job!' : 'Past due'}
           accent="rose"
           icon={Clock}
         />
+        <StatCard label="Team Members" value={data.teamMemberCount} hint="Active" accent="violet" icon={Users} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-[#ffb36c]" aria-hidden />
-              <h2 className="text-lg font-bold text-[#f8fafc]">Recent activity</h2>
+        <div className="space-y-6">
+          <Card className="p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+                <h2 className="text-lg font-bold text-[#f8fafc]">Recent Activity</h2>
+              </div>
+              <Link to="/activity" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+                View all
+              </Link>
             </div>
-            <Link to="/activity" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
-              View all
-            </Link>
-          </div>
-          <ActivityFeed items={data.recentActivity} compact />
-        </Card>
+            <ActivityFeed items={data.recentActivity.slice(0, 5)} compact />
+          </Card>
 
-        <Card className="p-5 sm:p-6">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-[#ffb36c]" aria-hidden />
-            <h2 className="text-lg font-bold text-[#f8fafc]">Quick start</h2>
-          </div>
-          <p className="mt-2 text-sm text-[#a9b1c0]">Get up and running in minutes.</p>
-          <ul className="mt-5 space-y-4 text-sm text-[#cbd5e1]">
-            {[
-              ['Browse projects', 'Review the workspace portfolio and task volume.'],
-              ['Open a project', 'Inspect tasks, members, project progress, and activity.'],
-              ['Take action', 'Assign tasks, update status, or leave a comment.'],
-              ['Integrate', 'Use the API docs to inspect available endpoints.'],
-            ].map(([title, detail], index) => (
-              <li key={title} className="flex gap-3">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ff7b22]/15 text-xs font-bold text-[#fed7aa] ring-1 ring-[#ff7b22]/30">
-                  {index + 1}
-                </span>
-                <span>
-                  <span className="block font-semibold text-[#f8fafc]">{title}</span>
-                  <span className="text-[#8e99ad]">{detail}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <MyTasksCard tasks={tasks} userId={userId} />
+        </div>
+
+        <div className="space-y-6">
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PieChart className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+                <h2 className="text-lg font-bold text-[#f8fafc]">Project Overview</h2>
+              </div>
+              <Link to="/reports" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+                View full report
+              </Link>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-6">
+              <DonutChart
+                segments={donutSegments}
+                centerValue={`${completionPercent}%`}
+                centerLabel="Complete"
+              />
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+                  <span>Status</span>
+                  <span className="flex gap-6">
+                    <span className="w-8 text-right">Projects</span>
+                    <span className="w-8 text-right">%</span>
+                  </span>
+                </div>
+                {donutSegments.map((segment) => (
+                  <div key={segment.label} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-[#cbd5e1]">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: segment.color }} aria-hidden />
+                      {segment.label}
+                    </span>
+                    <span className="flex gap-6 text-[#8e99ad]">
+                      <span className="w-8 text-right font-semibold text-[#f8fafc]">{segment.value}</span>
+                      <span className="w-8 text-right">
+                        {data.totalProjects > 0 ? Math.round((segment.value / data.totalProjects) * 100) : 0}%
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 border-t pp-divider pt-4">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-[#cbd5e1]">Overall Progress</span>
+                <span className="text-[#f8fafc]">{completionPercent}% complete</span>
+              </div>
+              <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#d92d20] via-[#ff7b22] to-[#ffb347] transition-all"
+                  style={{ width: `${completionPercent}%` }}
+                />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+                <h2 className="text-lg font-bold text-[#f8fafc]">Team Members</h2>
+              </div>
+              <Link to="/teams" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+                Manage Team
+              </Link>
+            </div>
+
+            <ul className="mt-4 space-y-1.5">
+              {topMembers.map((member) => (
+                <li key={member.id} className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
+                  <Avatar
+                    name={member.displayName}
+                    id={member.id}
+                    presence={presenceFor(member.id, userId)}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-[#f8fafc]">{member.displayName}</span>
+                    <span className="block truncate text-xs text-[#8e99ad]">{member.email}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-[#8e99ad]">
+                    {member.assignedTaskCount} task{member.assignedTaskCount === 1 ? '' : 's'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
             <Link
-              to="/projects"
-              className="pp-button-primary"
+              to="/teams"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
             >
-              View projects
+              View all members
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
-            <a
-              href={apiDocsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="pp-button-secondary"
-            >
-              API Docs
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   )

@@ -25,9 +25,28 @@ import {
   useUsers,
   type TaskFilters,
 } from '../api/queries'
-import { ArrowLeft, Columns3, Download, List, Paperclip, Search, Trash2 } from 'lucide-react'
+import {
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  CircleDot,
+  CircleEllipsis,
+  Columns3,
+  Download,
+  List,
+  MoreHorizontal,
+  Paperclip,
+  Search,
+  Trash2,
+  Upload,
+  UserPlus,
+  XCircle,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
+import { Avatar } from '../components/Avatar'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { FileTypeIcon } from '../components/FileTypeIcon'
 import { LabelChip } from '../components/LabelChip'
 import { CardSkeleton, Skeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
@@ -36,11 +55,27 @@ import { TaskFilterMenu } from '../components/TaskFilterMenu'
 import { emptyTaskFilters, type TaskFilterValues } from '../lib/taskFilters'
 import { TaskPanel, type FocusComment } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
+import { useDemoSession } from '../demo/DemoSessionContext'
 import { getMutationErrorMessage } from '../lib/errors'
+import { presenceFor } from '../lib/presence'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
 import { isAssignableMember, projectRoles } from '../lib/roles'
 import { formatTaskStatus, taskPriorities, taskStatuses, taskStatusTones } from '../lib/tasks'
 import { downloadFile } from '../api/client'
+
+const taskStatusIcons: Record<string, { icon: LucideIcon; color: string }> = {
+  Open: { icon: Circle, color: '#94a3b8' },
+  InProgress: { icon: CircleDot, color: '#ff7b22' },
+  InReview: { icon: CircleEllipsis, color: '#eab308' },
+  Done: { icon: CheckCircle2, color: '#22c55e' },
+  Cancelled: { icon: XCircle, color: '#ef4444' },
+}
+
+const memberRoleTones: Record<string, 'neutral' | 'orange' | 'green' | 'yellow' | 'red'> = {
+  Admin: 'orange',
+  Member: 'green',
+  Viewer: 'neutral',
+}
 const initialStatusTransitions: Record<string, string[]> = {
   Open: [],
   InProgress: ['InProgress'],
@@ -107,7 +142,8 @@ export function ProjectDetailPage() {
   const uploadProjectAttachment = useUploadProjectAttachment(id)
   const deleteProjectAttachment = useDeleteProjectAttachment(id)
 
-  const [showTaskForm, setShowTaskForm] = useState(false)
+  // Deep link from the dashboard's Quick Add menu.
+  const [showTaskForm, setShowTaskForm] = useState(() => searchParams.get('newTask') === '1')
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
   const [taskPriority, setTaskPriority] = useState('Medium')
@@ -121,8 +157,11 @@ export function ProjectDetailPage() {
   const [isFinalizingTask, setIsFinalizingTask] = useState(false)
   const [memberUserId, setMemberUserId] = useState('')
   const [memberRole, setMemberRole] = useState('Member')
+  const [showMemberForm, setShowMemberForm] = useState(false)
+  const [showProjectMenu, setShowProjectMenu] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState<{ userId: string; displayName: string } | null>(null)
+  const { userId: sessionUserId } = useDemoSession()
 
   if (!project) {
     return (
@@ -253,17 +292,18 @@ export function ProjectDetailPage() {
 
   return (
     <div className="pp-page-shell">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
+        <Link to="/projects" className="font-semibold text-[#8e99ad] transition hover:text-[#f8fafc]">
+          Projects
+        </Link>
+        <ChevronRight className="h-4 w-4 text-[#687387]" aria-hidden />
+        <span className="truncate font-semibold text-[#f8fafc]">{project.name}</span>
+      </nav>
+
       <section className="pp-hero-card p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <Link
-              to="/projects"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden />
-              Back to projects
-            </Link>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
               <ProjectIconTile projectId={project.id} />
               <h1 className="pp-title">{project.name}</h1>
               <Badge tone={projectStatusTone(project.status)}>{formatProjectStatus(project.status)}</Badge>
@@ -290,30 +330,57 @@ export function ProjectDetailPage() {
                 </option>
               ))}
             </select>
-            <Button
-              type="button"
-              disabled={deleteProject.isPending}
-              onClick={() => setShowDeleteDialog(true)}
-              variant="danger"
-            >
-              Delete project
-            </Button>
+            <div className="relative">
+              <button
+                type="button"
+                aria-label="Project actions"
+                aria-expanded={showProjectMenu}
+                onClick={() => setShowProjectMenu((open) => !open)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-[#a9b1c0] transition hover:text-[#f8fafc]"
+              >
+                <MoreHorizontal className="h-5 w-5" aria-hidden />
+              </button>
+              {showProjectMenu && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Close project actions"
+                    className="fixed inset-0 z-40 cursor-default"
+                    onClick={() => setShowProjectMenu(false)}
+                  />
+                  <div className="pp-card absolute right-0 top-full z-50 mt-2 w-52 p-2 shadow-2xl">
+                    <button
+                      type="button"
+                      disabled={deleteProject.isPending}
+                      onClick={() => {
+                        setShowProjectMenu(false)
+                        setShowDeleteDialog(true)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#fca5a5] transition hover:bg-[#ef4444]/10"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                      Delete project
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
       {summary && (
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {[
             ['Total', summary.totalTasks],
             ['Open', summary.openTasks],
-            ['In progress', summary.inProgressTasks],
+            ['In Progress', summary.inProgressTasks],
             ['Done', summary.doneTasks],
             ['Overdue', summary.overdueTasks],
           ].map(([label, value]) => (
-            <Card key={label as string} className="p-4 text-center">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">{label}</p>
-              <p className="mt-1 text-2xl font-bold text-[#f8fafc]">{value as number}</p>
+            <Card key={label as string} className="px-4 py-5 text-center">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[#8e99ad]">{label}</p>
+              <p className="mt-1.5 text-3xl font-extrabold text-[#f8fafc]">{value as number}</p>
             </Card>
           ))}
         </div>
@@ -335,11 +402,11 @@ export function ProjectDetailPage() {
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="pp-eyebrow">Project files</p>
-            <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Essential information</h2>
+            <p className="pp-eyebrow">Essential information</p>
+            <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Project Files</h2>
           </div>
           <label className="pp-button-secondary cursor-pointer">
-            <Paperclip className="h-4 w-4" aria-hidden />
+            <Upload className="h-4 w-4" aria-hidden />
             {uploadProjectAttachment.isPending ? 'Uploading...' : 'Upload files'}
             <input
               type="file"
@@ -368,14 +435,14 @@ export function ProjectDetailPage() {
         {projectAttachments.length === 0 ? (
           <p className="mt-4 text-sm text-[#8e99ad]">No project files yet.</p>
         ) : (
-          <ul className="mt-4 grid gap-2 md:grid-cols-2">
+          <ul className="mt-4 grid gap-2.5 md:grid-cols-2">
             {projectAttachments.map((attachment) => (
               <li
                 key={attachment.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm"
+                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm transition hover:border-white/20"
               >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Paperclip className="h-4 w-4 shrink-0 text-[#8e99ad]" aria-hidden />
+                <div className="flex min-w-0 items-center gap-3">
+                  <FileTypeIcon fileName={attachment.fileName} />
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-[#f8fafc]">{attachment.fileName}</p>
                     <p className="text-xs text-[#8e99ad]">{formatFileSize(attachment.sizeBytes)}</p>
@@ -729,6 +796,8 @@ export function ProjectDetailPage() {
             <ul className="space-y-3">
               {visibleTasks.map((task) => {
                 const fileSummary = formatTaskFileSummary(task)
+                const statusIcon = taskStatusIcons[task.status] ?? taskStatusIcons.Open
+                const StatusIcon = statusIcon.icon
 
                 return (
                   <li key={task.id}>
@@ -737,32 +806,43 @@ export function ProjectDetailPage() {
                       onClick={() => setSearchParams({ taskId: task.id })}
                       className="pp-card pp-card-hover w-full px-4 py-4 text-left"
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#f8fafc]">{task.title}</p>
-                          <p className="mt-1 text-xs text-[#8e99ad]">
-                            Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
-                            {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
+                      <div className="flex items-start gap-3">
+                        <span
+                          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                          style={{ backgroundColor: `${statusIcon.color}1a`, color: statusIcon.color }}
+                          aria-hidden
+                        >
+                          <StatusIcon className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-[#f8fafc]">{task.title}</p>
+                              <p className="mt-1 text-xs text-[#8e99ad]">
+                                Assigned to {task.assigneeName ?? 'Unassigned'} · {task.priority} ·{' '}
+                                {task.dueDateUtc ? `Due ${formatDueDate(task.dueDateUtc)}` : 'No due date'}
+                              </p>
+                            </div>
+                            <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
+                            {task.description || 'No description yet'}
                           </p>
+                          {fileSummary && (
+                            <p className="mt-2.5 flex items-center gap-1.5 truncate text-xs font-medium text-[#ffb36c]">
+                              <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              <span className="truncate">{fileSummary}</span>
+                            </p>
+                          )}
+                          {task.labels.length > 0 && (
+                            <div className="mt-2.5 flex flex-wrap gap-1.5">
+                              {task.labels.map((label) => (
+                                <LabelChip key={label.id} label={label} />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
                       </div>
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#a9b1c0]">
-                        {task.description || 'No description yet'}
-                      </p>
-                      {fileSummary && (
-                        <p className="mt-3 flex items-center gap-1.5 truncate text-xs font-medium text-[#ffb36c]">
-                          <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                          <span className="truncate">{fileSummary}</span>
-                        </p>
-                      )}
-                      {task.labels.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {task.labels.map((label) => (
-                            <LabelChip key={label.id} label={label} />
-                          ))}
-                        </div>
-                      )}
                     </button>
                   </li>
                 )
@@ -773,80 +853,106 @@ export function ProjectDetailPage() {
 
         <div className="space-y-6">
           <Card className="p-5">
-            <div>
-              <p className="pp-eyebrow">Team</p>
-              <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Members</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="pp-eyebrow">Team</p>
+                <h2 className="mt-1 text-lg font-bold text-[#f8fafc]">Members</h2>
+              </div>
+              <button
+                type="button"
+                aria-expanded={showMemberForm}
+                onClick={() => setShowMemberForm((open) => !open)}
+                className="pp-button-secondary min-h-0 px-3 py-2 text-xs"
+              >
+                <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                Add member
+              </button>
             </div>
             {memberMutationError && (
               <p className="mt-3 rounded-xl border border-[#f87171]/35 bg-[#ef4444]/10 px-3 py-2 text-sm text-[#fecaca]">
                 {memberMutationError}
               </p>
             )}
-            <form
-              className="mt-3 grid gap-2"
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (!memberUserId) return
-                addMember.mutate(
-                  { userId: memberUserId, role: memberRole },
-                  { onSuccess: () => setMemberUserId('') },
-                )
-              }}
-            >
-              <select
-                required
-                aria-label="User"
-                className="pp-select text-sm"
-                value={memberUserId}
-                onChange={(e) => setMemberUserId(e.target.value)}
-                disabled={availableUsers.length === 0}
+            {showMemberForm && (
+              <form
+                className="mt-3 grid gap-2 rounded-xl border border-dashed border-[#ff7b22]/35 bg-[#ff7b22]/[0.035] p-3"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (!memberUserId) return
+                  addMember.mutate(
+                    { userId: memberUserId, role: memberRole },
+                    {
+                      onSuccess: () => {
+                        setMemberUserId('')
+                        setShowMemberForm(false)
+                      },
+                    },
+                  )
+                }}
               >
-                <option value="" disabled>
-                  Add person
-                </option>
-                {availableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.displayName}
-                  </option>
-                ))}
-              </select>
-              <div className="flex gap-2">
                 <select
-                  className="pp-select min-w-0 flex-1 text-sm"
-                  value={memberRole}
-                  onChange={(e) => setMemberRole(e.target.value)}
+                  required
+                  aria-label="User"
+                  className="pp-select text-sm"
+                  value={memberUserId}
+                  onChange={(e) => setMemberUserId(e.target.value)}
+                  disabled={availableUsers.length === 0}
                 >
-                  {projectRoles.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
+                  <option value="" disabled>
+                    Add person
+                  </option>
+                  {availableUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.displayName}
                     </option>
                   ))}
                 </select>
-                <button
-                  type="submit"
-                  disabled={!memberUserId || addMember.isPending}
-                  className="pp-button-primary"
-                >
-                  Add
-                </button>
-              </div>
-            </form>
-            <ul className="mt-4 space-y-3">
+                <div className="flex gap-2">
+                  <select
+                    className="pp-select min-w-0 flex-1 text-sm"
+                    value={memberRole}
+                    onChange={(e) => setMemberRole(e.target.value)}
+                  >
+                    {projectRoles.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={!memberUserId || addMember.isPending}
+                    className="pp-button-primary"
+                  >
+                    Add
+                  </button>
+                </div>
+              </form>
+            )}
+            <ul className="mt-4 space-y-2">
               {members.map((m) => (
-                <li key={m.userId} className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm">
-                  <div className="min-w-0">
+                <li
+                  key={m.userId}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm"
+                >
+                  <Avatar
+                    name={m.displayName}
+                    id={m.userId}
+                    presence={presenceFor(m.userId, sessionUserId)}
+                  />
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-[#f8fafc]">{m.displayName}</p>
-                    <p className="truncate text-xs text-[#8e99ad]">
-                      {m.role} · {m.email}
-                    </p>
+                    <p className="truncate text-xs text-[#8e99ad]">{m.email}</p>
                   </div>
+                  <Badge tone={memberRoleTones[m.role] ?? 'neutral'}>{m.role}</Badge>
                   <button
                     type="button"
+                    aria-label={`Remove ${m.displayName}`}
                     disabled={removeMember.isPending || (m.role === 'Admin' && adminCount <= 1)}
                     onClick={() => setMemberToRemove({ userId: m.userId, displayName: m.displayName })}
-                    className="pp-button-danger min-h-0 shrink-0 rounded-lg px-2 py-1 text-xs"
+                    className="pp-button-ghost min-h-0 shrink-0 p-1.5 text-[#fca5a5] disabled:opacity-30"
                   >
-                    Remove
+                    <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
                 </li>
               ))}

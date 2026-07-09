@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, FolderPlus, ListChecks, Paperclip, Plus, Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   addProjectMember,
   queryKeys,
@@ -34,6 +34,7 @@ function findDefaultDemoAdmin(users: User[]) {
 
 export function ProjectsPage() {
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const { data: projects = [], isLoading, error } = useProjects()
   const { data: users = [] } = useUsers()
   const createProject = useCreateProject()
@@ -41,7 +42,8 @@ export function ProjectsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('Active')
-  const [showForm, setShowForm] = useState(false)
+  // Deep link from the dashboard's New Project action.
+  const [showForm, setShowForm] = useState(() => searchParams.get('create') === '1')
   const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([])
   const [projectFiles, setProjectFiles] = useState<File[]>([])
   const [memberUserId, setMemberUserId] = useState('')
