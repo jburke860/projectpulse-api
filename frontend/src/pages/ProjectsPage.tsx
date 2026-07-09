@@ -411,7 +411,7 @@ export function ProjectsPage() {
         </form>
       )}
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
         {projects.map((project) => (
           <Card key={project.id} interactive className="group flex min-h-[15rem] flex-col p-5 sm:p-6">
             <Link to={`/projects/${project.id}`} className="flex flex-1 flex-col">

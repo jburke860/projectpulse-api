@@ -43,7 +43,7 @@ export function TeamsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {Array.from({ length: 6 }, (_, index) => (
             <CardSkeleton key={index} lines={2} />
           ))}
@@ -55,7 +55,7 @@ export function TeamsPage() {
           description="Try a different name or email."
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {visibleUsers.map((user) => {
             const presence = presenceFor(user.id, sessionUserId)
 

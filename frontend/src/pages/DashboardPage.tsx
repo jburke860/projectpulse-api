@@ -259,29 +259,28 @@ export function DashboardPage() {
 
   return (
     <div className="pp-page-shell">
-      <section className="pp-hero-card relative overflow-hidden p-6 sm:p-8">
-        <svg
-          className="pointer-events-none absolute right-8 top-6 hidden h-14 w-56 xl:block"
-          viewBox="0 0 288 80"
-          fill="none"
-          aria-hidden
-        >
-          <defs>
-            <linearGradient id="pp-pulse-stroke" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#ff7b22" stopOpacity="0" />
-              <stop offset="0.35" stopColor="#ff7b22" stopOpacity="0.55" />
-              <stop offset="0.75" stopColor="#ffb347" stopOpacity="0.9" />
-              <stop offset="1" stopColor="#ffb347" stopOpacity="0.25" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M2 40 H96 l10 -12 l10 12 h28 l12 -28 l14 50 l12 -36 l8 14 h94"
-            stroke="url(#pp-pulse-stroke)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      {/* overflow-hidden lives on the decoration layer, not the section,
+          so the Quick Add dropdown is never clipped. */}
+      <section className="pp-hero-card relative p-6 sm:p-8">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]" aria-hidden>
+          <svg className="absolute right-8 top-6 hidden h-14 w-56 xl:block" viewBox="0 0 288 80" fill="none">
+            <defs>
+              <linearGradient id="pp-pulse-stroke" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#ff7b22" stopOpacity="0" />
+                <stop offset="0.35" stopColor="#ff7b22" stopOpacity="0.55" />
+                <stop offset="0.75" stopColor="#ffb347" stopOpacity="0.9" />
+                <stop offset="1" stopColor="#ffb347" stopOpacity="0.25" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M2 40 H96 l10 -12 l10 12 h28 l12 -28 l14 50 l12 -36 l8 14 h94"
+              stroke="url(#pp-pulse-stroke)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
         <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">

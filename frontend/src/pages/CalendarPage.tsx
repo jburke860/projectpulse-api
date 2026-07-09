@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useTasks } from '../api/queries'
 import type { Task } from '../api/types'
+import { TaskPreviewDialog } from '../components/TaskPreviewDialog'
 import { Card, PageHeader } from '../components/ui'
 import { dateKey, getMonthGrid, isSameDay, monthLabel } from '../lib/calendar'
 import { isTaskOverdue } from '../lib/tasks'
@@ -23,10 +23,10 @@ function taskColor(task: Task) {
 }
 
 export function CalendarPage() {
-  const navigate = useNavigate()
   const { data: tasks = [] } = useTasks()
   const [today] = useState(() => new Date())
   const [view, setView] = useState(() => ({ year: today.getFullYear(), month: today.getMonth() }))
+  const [previewTask, setPreviewTask] = useState<Task | null>(null)
 
   const tasksByDay = new Map<string, Task[]>()
   for (const task of tasks) {
@@ -123,7 +123,7 @@ export function CalendarPage() {
                         key={task.id}
                         type="button"
                         title={`${task.title} · ${task.projectName}`}
-                        onClick={() => navigate(`/projects/${task.projectId}?taskId=${task.id}`)}
+                        onClick={() => setPreviewTask(task)}
                         className="flex w-full items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-left text-[0.7rem] font-medium text-[#e2e8f0] transition hover:brightness-125"
                         style={{ backgroundColor: `${color}24` }}
                       >
@@ -162,6 +162,8 @@ export function CalendarPage() {
           ))}
         </div>
       </Card>
+
+      <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
     </div>
   )
 }
