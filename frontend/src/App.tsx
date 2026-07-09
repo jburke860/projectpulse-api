@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BarChart3, CalendarDays, FileText, Settings, SquareCheck, Users } from 'lucide-react'
+import { BarChart3, FileText, Settings } from 'lucide-react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Layout } from './components/Layout'
 import { ActivityPage } from './pages/ActivityPage'
+import { CalendarPage } from './pages/CalendarPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
+import { TasksPage } from './pages/TasksPage'
+import { TeamsPage } from './pages/TeamsPage'
 import { DemoSessionProvider } from './demo/DemoSessionProvider'
 
 const queryClient = new QueryClient({
@@ -38,28 +41,8 @@ export default function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:id" element={<ProjectDetailPage />} />
               <Route path="activity" element={<ActivityPage />} />
-              <Route
-                path="tasks"
-                element={
-                  <ComingSoonPage
-                    icon={SquareCheck}
-                    eyebrow="Workspace"
-                    title="Tasks"
-                    description="Every task across your projects in one place."
-                  />
-                }
-              />
-              <Route
-                path="calendar"
-                element={
-                  <ComingSoonPage
-                    icon={CalendarDays}
-                    eyebrow="Schedule"
-                    title="Calendar"
-                    description="Tasks laid out by due date."
-                  />
-                }
-              />
+              <Route path="tasks" element={<TasksPage />} />
+              <Route path="calendar" element={<CalendarPage />} />
               <Route
                 path="documents"
                 element={
@@ -71,17 +54,7 @@ export default function App() {
                   />
                 }
               />
-              <Route
-                path="teams"
-                element={
-                  <ComingSoonPage
-                    icon={Users}
-                    eyebrow="People"
-                    title="Teams"
-                    description="Everyone collaborating in this workspace."
-                  />
-                }
-              />
+              <Route path="teams" element={<TeamsPage />} />
               <Route
                 path="reports"
                 element={

@@ -102,21 +102,23 @@ export function TaskFilterMenu({ filters, assignees, labels, onChange }: TaskFil
               </select>
             </label>
 
-            <label className="pp-label">
-              Label
-              <select
-                className="pp-select text-sm"
-                value={filters.labelId}
-                onChange={(e) => set({ labelId: e.target.value })}
-              >
-                <option value="">All labels</option>
-                {labels.map((label) => (
-                  <option key={label.id} value={label.id}>
-                    {label.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {labels.length > 0 && (
+              <label className="pp-label">
+                Label
+                <select
+                  className="pp-select text-sm"
+                  value={filters.labelId}
+                  onChange={(e) => set({ labelId: e.target.value })}
+                >
+                  <option value="">All labels</option>
+                  {labels.map((label) => (
+                    <option key={label.id} value={label.id}>
+                      {label.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <div className="flex items-center justify-between border-t pp-divider pt-3">
               <button
