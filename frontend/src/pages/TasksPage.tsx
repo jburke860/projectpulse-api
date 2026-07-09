@@ -10,12 +10,13 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useProjectLabels, useProjects, useTasks, useUsers, type TaskFilters } from '../api/queries'
+import type { Task } from '../api/types'
 import { EmptyState } from '../components/EmptyState'
 import { LabelChip } from '../components/LabelChip'
 import { CardSkeleton } from '../components/Skeleton'
 import { TaskFilterMenu } from '../components/TaskFilterMenu'
+import { TaskPreviewDialog } from '../components/TaskPreviewDialog'
 import { Badge, PageHeader } from '../components/ui'
 import { formatShortDate } from '../lib/dates'
 import { emptyTaskFilters, type TaskFilterValues } from '../lib/taskFilters'
@@ -30,8 +31,8 @@ const taskStatusIcons: Record<string, { icon: LucideIcon; color: string }> = {
 }
 
 export function TasksPage() {
-  const navigate = useNavigate()
   const [filters, setFilters] = useState<TaskFilterValues>(emptyTaskFilters)
+  const [previewTask, setPreviewTask] = useState<Task | null>(null)
   const [projectId, setProjectId] = useState('')
   const [searchText, setSearchText] = useState('')
 
@@ -150,7 +151,7 @@ export function TasksPage() {
               <li key={task.id}>
                 <button
                   type="button"
-                  onClick={() => navigate(`/projects/${task.projectId}?taskId=${task.id}`)}
+                  onClick={() => setPreviewTask(task)}
                   className="pp-card pp-card-hover w-full px-4 py-4 text-left"
                 >
                   <div className="flex items-start gap-3">
@@ -197,6 +198,8 @@ export function TasksPage() {
           })}
         </ul>
       )}
+
+      <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
     </div>
   )
 }

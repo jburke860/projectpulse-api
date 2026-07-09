@@ -1,8 +1,11 @@
 import { AlertTriangle, BarChart3, FolderKanban, PieChart } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useDashboard, useProjects, useTasks } from '../api/queries'
+import type { Task } from '../api/types'
 import { DonutChart, type DonutSegment } from '../components/DonutChart'
 import { CardSkeleton } from '../components/Skeleton'
+import { TaskPreviewDialog } from '../components/TaskPreviewDialog'
 import { Badge, Card, PageHeader } from '../components/ui'
 import { formatShortDate } from '../lib/dates'
 import { formatTaskStatus, isTaskOverdue, taskPriorityTones, taskPriorities } from '../lib/tasks'
@@ -23,7 +26,7 @@ const priorityColors: Record<string, string> = {
 }
 
 export function ReportsPage() {
-  const navigate = useNavigate()
+  const [previewTask, setPreviewTask] = useState<Task | null>(null)
   const { data: dashboard, isLoading } = useDashboard()
   const { data: projects = [] } = useProjects()
   const { data: tasks = [] } = useTasks()
@@ -180,7 +183,7 @@ export function ReportsPage() {
                 {overdueTasks.map((task) => (
                   <tr
                     key={task.id}
-                    onClick={() => navigate(`/projects/${task.projectId}?taskId=${task.id}`)}
+                    onClick={() => setPreviewTask(task)}
                     className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
                   >
                     <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">{task.title}</td>
@@ -201,6 +204,8 @@ export function ReportsPage() {
           </div>
         )}
       </Card>
+
+      <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
     </div>
   )
 }

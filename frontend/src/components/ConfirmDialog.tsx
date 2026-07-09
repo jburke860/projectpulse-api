@@ -65,7 +65,7 @@ export function ConfirmDialog({
     <>
       <button
         type="button"
-        className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
+        className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
         aria-label="Cancel"
         onClick={onCancel}
       />
@@ -74,7 +74,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="pp-card fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl"
+        className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl"
       >
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#f87171]/30 bg-[#ef4444]/10 text-[#fca5a5]">

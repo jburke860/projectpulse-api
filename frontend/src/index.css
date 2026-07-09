@@ -64,6 +64,65 @@ body {
   box-shadow: 0 0 0 1px rgba(255, 123, 34, 0.6);
 }
 
+/* Motion system: small, fast entrances so navigation and overlays feel
+   sequenced instead of abrupt. */
+@keyframes pp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tailwind v4 positions dialogs with the native `translate` property, so
+   keyframes must animate `scale`/`opacity` only or the offsets compose. */
+@keyframes pp-pop-in-center {
+  from { opacity: 0; scale: 0.96; }
+  to { opacity: 1; scale: 1; }
+}
+
+@keyframes pp-drop-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pp-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pp-palette-in {
+  from { opacity: 0; translate: -50% -8px; scale: 0.98; }
+  to { opacity: 1; translate: -50% 0; scale: 1; }
+}
+
+.pp-overlay-enter {
+  animation: pp-fade-in 150ms ease-out both;
+}
+
+.pp-dialog-enter {
+  animation: pp-pop-in-center 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pp-menu-enter {
+  animation: pp-drop-in 140ms ease-out both;
+}
+
+.pp-page-enter {
+  animation: pp-slide-up 200ms ease-out both;
+}
+
+.pp-palette-enter {
+  animation: pp-palette-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-overlay-enter,
+  .pp-dialog-enter,
+  .pp-menu-enter,
+  .pp-page-enter,
+  .pp-palette-enter {
+    animation: none;
+  }
+}
+
 .pp-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 1rem;

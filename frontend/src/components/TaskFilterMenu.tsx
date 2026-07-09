@@ -53,7 +53,7 @@ export function TaskFilterMenu({ filters, assignees, labels, onChange }: TaskFil
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card absolute right-0 top-full z-50 mt-2 w-72 space-y-4 p-4 shadow-2xl">
+          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-72 space-y-4 p-4 shadow-2xl">
             <label className="pp-label">
               Status
               <select

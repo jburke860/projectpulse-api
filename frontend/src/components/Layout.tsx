@@ -24,7 +24,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useActivity, useTasks } from '../api/queries'
 import type { AuditLog } from '../api/types'
@@ -125,7 +125,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 className="fixed inset-0 z-40 cursor-default"
                 onClick={() => setUserMenuOpen(false)}
               />
-              <div className="pp-card absolute bottom-full left-0 z-50 mb-2 w-full space-y-1 p-2 shadow-2xl">
+              <div className="pp-card pp-menu-enter absolute bottom-full left-0 z-50 mb-2 w-full space-y-1 p-2 shadow-2xl">
                 <a
                   href={apiDocsUrl}
                   target="_blank"
@@ -219,7 +219,7 @@ function NotificationBell() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card absolute right-0 top-full z-50 mt-2 w-96 p-2 shadow-2xl">
+          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-96 p-2 shadow-2xl">
             <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
               Your notifications
             </p>
@@ -278,6 +278,7 @@ function NotificationBell() {
 
 export function Layout() {
   const { userId } = useDemoSession()
+  const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   useEscapeToClose(() => setDrawerOpen(false), drawerOpen)
 
@@ -346,7 +347,10 @@ export function Layout() {
         </header>
 
         <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-          <Outlet />
+          {/* Keyed by pathname so each route eases in instead of hard-cutting. */}
+          <div key={location.pathname} className="pp-page-enter">
+            <Outlet />
+          </div>
         </main>
 
         <footer className="border-t border-white/10">

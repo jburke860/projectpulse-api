@@ -348,7 +348,7 @@ export function ProjectDetailPage() {
                     className="fixed inset-0 z-40 cursor-default"
                     onClick={() => setShowProjectMenu(false)}
                   />
-                  <div className="pp-card absolute right-0 top-full z-50 mt-2 w-52 p-2 shadow-2xl">
+                  <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-52 p-2 shadow-2xl">
                     <button
                       type="button"
                       disabled={deleteProject.isPending}
@@ -975,7 +975,7 @@ export function ProjectDetailPage() {
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
+            className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
             aria-label="Close task panel"
             onClick={() => setSearchParams({}, { replace: true })}
           />

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { ArrowUpRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTask, useTaskComments } from '../api/queries'
@@ -56,15 +57,17 @@ export function ActivityPreviewDialog({ item, onClose }: ActivityPreviewDialogPr
     navigate(`/projects/${item.projectId}`)
   }
 
-  return (
+  // Portaled to <body> so transformed/filtered ancestors (like the blurred
+  // header) can never hijack the fixed positioning.
+  return createPortal(
     <>
       <button
         type="button"
-        className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
+        className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
         aria-label="Close activity details"
         onClick={onClose}
       />
-      <aside className="pp-card fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 p-5 shadow-2xl">
+      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b pp-divider pb-4">
           <div>
             <p className="text-xs text-[#8e99ad]">{formatActivityTime(item.createdAtUtc)}</p>
@@ -127,6 +130,7 @@ export function ActivityPreviewDialog({ item, onClose }: ActivityPreviewDialogPr
           </button>
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   )
 }

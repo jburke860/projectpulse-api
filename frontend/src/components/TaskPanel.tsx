@@ -91,7 +91,7 @@ export function TaskPanel({ taskId, projectId, onClose, focusComment }: TaskPane
 
   if (isLoading || !task) {
     return (
-      <aside className="pp-card fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl">
+      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl">
         <p className="pp-subtitle">Loading task...</p>
       </aside>
     )
@@ -206,7 +206,7 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment }: Loa
   }
 
   return (
-    <aside className="pp-card fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden shadow-2xl">
+    <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden shadow-2xl">
       <header className="flex items-center justify-between gap-3 border-b pp-divider p-5">
         <div>
           <p className="pp-eyebrow">Task</p>

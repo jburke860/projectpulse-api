@@ -19,6 +19,7 @@ import { ActivityFeed } from '../components/ActivityFeed'
 import { Avatar } from '../components/Avatar'
 import { DonutChart, type DonutSegment } from '../components/DonutChart'
 import { DashboardSkeleton } from '../components/Skeleton'
+import { TaskPreviewDialog } from '../components/TaskPreviewDialog'
 import { StatCard } from '../components/StatCard'
 import { Badge, Button, Card } from '../components/ui'
 import { useDemoSession } from '../demo/DemoSessionContext'
@@ -77,7 +78,7 @@ function QuickAddMenu() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card absolute right-0 top-full z-50 mt-2 w-64 p-2 shadow-2xl">
+          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-64 p-2 shadow-2xl">
             <button
               type="button"
               onClick={() => {
@@ -116,8 +117,8 @@ function QuickAddMenu() {
 }
 
 function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
-  const navigate = useNavigate()
   const [tab, setTab] = useState<MyTasksTab>('All Tasks')
+  const [previewTask, setPreviewTask] = useState<Task | null>(null)
 
   const filtered = tasks.filter((task) => {
     if (tab === 'My Tasks') return userId !== '' && task.assigneeId === userId
@@ -175,7 +176,7 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
                 return (
                   <tr
                     key={task.id}
-                    onClick={() => navigate(`/projects/${task.projectId}?taskId=${task.id}`)}
+                    onClick={() => setPreviewTask(task)}
                     className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
                   >
                     <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">
@@ -206,6 +207,8 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
         View all tasks
         <ArrowRight className="h-4 w-4" aria-hidden />
       </Link>
+
+      <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
     </Card>
   )
 }

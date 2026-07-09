@@ -134,10 +134,10 @@ export function CommandPalette() {
       <button
         type="button"
         aria-label="Close search"
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        className="pp-overlay-enter absolute inset-0 bg-black/60 backdrop-blur-[2px]"
         onClick={close}
       />
-      <div className="pp-card absolute left-1/2 top-24 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden p-0 shadow-2xl">
+      <div className="pp-card pp-palette-enter absolute left-1/2 top-24 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden p-0 shadow-2xl">
         <div className="flex items-center gap-3 border-b pp-divider px-4 py-3.5">
           <Search className="h-4 w-4 shrink-0 text-[#8e99ad]" aria-hidden />
           <input
