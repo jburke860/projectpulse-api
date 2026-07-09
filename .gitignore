@@ -23,8 +23,10 @@ Thumbs.db
 node_modules/
 frontend/dist/
 
-## Uploaded attachment storage
-attachments/
+## Uploaded attachment storage (anchored so source folders named
+## Attachments/ are not swallowed on case-insensitive filesystems)
+/attachments/
+src/ProjectPulse.Api/attachments/
 
 ## Secrets
 appsettings.*.local.json
