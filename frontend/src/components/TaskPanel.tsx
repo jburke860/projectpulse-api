@@ -151,13 +151,17 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment }: Loa
     const target = findMatchingComment(focusComment, comments)
     if (!target) return
 
-    focusedRef.current = focusComment.atUtc
     const element = document.getElementById(`pp-comment-${target.id}`)
     if (!element) return
 
     element.scrollIntoView({ behavior: 'smooth', block: 'center' })
     element.classList.add('pp-comment-highlight')
-    const timer = setTimeout(() => element.classList.remove('pp-comment-highlight'), 2600)
+    // Mark the focus consumed only after the highlight has displayed, so
+    // StrictMode's setup/cleanup/setup cycle re-applies it correctly.
+    const timer = setTimeout(() => {
+      focusedRef.current = focusComment.atUtc
+      element.classList.remove('pp-comment-highlight')
+    }, 2600)
     return () => {
       clearTimeout(timer)
       element.classList.remove('pp-comment-highlight')

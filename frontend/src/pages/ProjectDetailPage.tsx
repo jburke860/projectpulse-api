@@ -32,6 +32,8 @@ import { LabelChip } from '../components/LabelChip'
 import { CardSkeleton, Skeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { TaskBoard } from '../components/TaskBoard'
+import { TaskFilterMenu } from '../components/TaskFilterMenu'
+import { emptyTaskFilters, type TaskFilterValues } from '../lib/taskFilters'
 import { TaskPanel, type FocusComment } from '../components/TaskPanel'
 import { Badge, Button, Card } from '../components/ui'
 import { getMutationErrorMessage } from '../lib/errors'
@@ -79,16 +81,14 @@ export function ProjectDetailPage() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterPriority, setFilterPriority] = useState('')
-  const [filterAssigneeId, setFilterAssigneeId] = useState('')
+  const [filters, setFilters] = useState<TaskFilterValues>(emptyTaskFilters)
   const [searchText, setSearchText] = useState('')
   const [view, setView] = useState<'list' | 'board'>('list')
 
   const taskFilters: TaskFilters = {
-    status: filterStatus || undefined,
-    priority: filterPriority || undefined,
-    assigneeId: filterAssigneeId || undefined,
+    status: filters.status || undefined,
+    priority: filters.priority || undefined,
+    assigneeId: filters.assigneeId || undefined,
   }
 
   const { data: project } = useProject(id)
@@ -160,12 +160,15 @@ export function ProjectDetailPage() {
   const selectedTaskId = searchParams.get('taskId')
   const stateFocusComment = (location.state as { focusComment?: FocusComment } | null)?.focusComment ?? null
   const focusComment = stateFocusComment && stateFocusComment.taskId === selectedTaskId ? stateFocusComment : null
-  const hasActiveFilters = Boolean(filterStatus || filterPriority || filterAssigneeId || searchText)
-  const visibleTasks = searchText
-    ? tasks.filter((task) =>
-        `${task.title} ${task.description ?? ''}`.toLowerCase().includes(searchText.toLowerCase()),
-      )
-    : tasks
+  const hasActiveFilters = Boolean(
+    filters.status || filters.priority || filters.assigneeId || filters.labelId || searchText,
+  )
+  const visibleTasks = tasks.filter(
+    (task) =>
+      (!filters.labelId || task.labels.some((label) => label.id === filters.labelId)) &&
+      (!searchText ||
+        `${task.title} ${task.description ?? ''}`.toLowerCase().includes(searchText.toLowerCase())),
+  )
 
   const resetTaskForm = () => {
     setTaskTitle('')
@@ -474,57 +477,22 @@ export function ProjectDetailPage() {
                 onChange={(e) => setSearchText(e.target.value)}
               />
             </div>
-            <select
-              aria-label="Filter by status"
-              className="pp-select w-auto text-sm"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">All statuses</option>
-              {taskStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {formatTaskStatus(status)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Filter by priority"
-              className="pp-select w-auto text-sm"
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-            >
-              <option value="">All priorities</option>
-              {taskPriorities.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Filter by assignee"
-              className="pp-select w-auto text-sm"
-              value={filterAssigneeId}
-              onChange={(e) => setFilterAssigneeId(e.target.value)}
-            >
-              <option value="">All assignees</option>
-              {assignableMembers.map((member) => (
-                <option key={member.userId} value={member.userId}>
-                  {member.displayName}
-                </option>
-              ))}
-            </select>
+            <TaskFilterMenu
+              filters={filters}
+              assignees={assignableMembers}
+              labels={projectLabels}
+              onChange={setFilters}
+            />
             {hasActiveFilters && (
               <button
                 type="button"
                 className="pp-button-ghost min-h-0 px-3 py-2 text-xs"
                 onClick={() => {
-                  setFilterStatus('')
-                  setFilterPriority('')
-                  setFilterAssigneeId('')
+                  setFilters(emptyTaskFilters)
                   setSearchText('')
                 }}
               >
-                Clear filters
+                Clear
               </button>
             )}
           </div>
