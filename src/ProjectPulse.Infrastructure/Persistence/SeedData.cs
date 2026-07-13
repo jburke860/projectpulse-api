@@ -14,7 +14,7 @@ public static class SeedData
 
     private static readonly UserSeed[] TeamMembers =
     [
-        new("jeremy.demo", "Jeremy Burke"),
+        new("jeremy.demo", "Demo User"),
         new("sarah.kim", "Sarah Kim"),
         new("marcus.lee", "Marcus Lee"),
         new("priya.patel", "Priya Patel"),

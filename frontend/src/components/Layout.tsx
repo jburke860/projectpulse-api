@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Pencil,
   Plus,
   Search,
   Settings,
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
-import { useActivity, useTasks } from '../api/queries'
+import { useActivity, useTasks, useUsers } from '../api/queries'
 import type { AuditLog } from '../api/types'
 import { useDemoSession } from '../demo/DemoSessionContext'
 import { cn } from '../lib/cn'
@@ -35,6 +36,7 @@ import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { ActivityPreviewDialog } from './ActivityPreviewDialog'
 import { Avatar } from './Avatar'
 import { CommandPalette } from './CommandPalette'
+import { ProfileDialog } from './ProfileDialog'
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -49,7 +51,7 @@ const nav = [
 ]
 
 const DEMO_USER_NAME = 'Demo User'
-const DEMO_USER_EMAIL = 'demo@projectpulse.io'
+const DEMO_USER_EMAIL = 'jeremy.demo@projectpulse.local'
 
 const activityIcons: Record<string, { icon: LucideIcon; color: string }> = {
   CommentAdded: { icon: MessageSquare, color: '#38bdf8' },
@@ -62,7 +64,14 @@ const activityIcons: Record<string, { icon: LucideIcon; color: string }> = {
   Updated: { icon: SquareCheck, color: '#eab308' },
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+interface SidebarContentProps {
+  onNavigate?: () => void
+  name: string
+  email: string
+  onEditProfile: () => void
+}
+
+function SidebarContent({ onNavigate, name, email, onEditProfile }: SidebarContentProps) {
   const { apiDocsUrl, clearCurrentSession, userId } = useDemoSession()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
@@ -126,6 +135,17 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={() => setUserMenuOpen(false)}
               />
               <div className="pp-card pp-menu-enter absolute bottom-full left-0 z-50 mb-2 w-full space-y-1 p-2 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    onEditProfile()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#a9b1c0] transition hover:bg-white/[0.06] hover:text-[#f8fafc]"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  Edit profile
+                </button>
                 <a
                   href={apiDocsUrl}
                   target="_blank"
@@ -161,10 +181,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             onClick={() => setUserMenuOpen((open) => !open)}
             className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
           >
-            <Avatar name={DEMO_USER_NAME} id={userId || DEMO_USER_NAME} presence="online" />
+            <Avatar name={name} id={userId || name} presence="online" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-[#f8fafc]">{DEMO_USER_NAME}</span>
-              <span className="block truncate text-xs text-[#8e99ad]">{DEMO_USER_EMAIL}</span>
+              <span className="block truncate text-sm font-semibold text-[#f8fafc]">{name}</span>
+              <span className="block truncate text-xs text-[#8e99ad]">{email}</span>
             </span>
             <ChevronsUpDown className="h-4 w-4 shrink-0 text-[#8e99ad]" aria-hidden />
           </button>
@@ -276,11 +296,88 @@ function NotificationBell() {
   )
 }
 
+function UserAvatarMenu({
+  userId,
+  name,
+  onEditProfile,
+}: {
+  userId: string
+  name: string
+  onEditProfile: () => void
+}) {
+  const { clearCurrentSession } = useDemoSession()
+  const [open, setOpen] = useState(false)
+  useEscapeToClose(() => setOpen(false), open)
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Account menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="rounded-full transition hover:opacity-90"
+      >
+        <Avatar name={name} id={userId || name} size="md" />
+      </button>
+
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="Close account menu"
+            className="fixed inset-0 z-40 cursor-default"
+            onClick={() => setOpen(false)}
+          />
+          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-56 space-y-1 p-2 shadow-2xl">
+            <p className="truncate px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+              {name}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onEditProfile()
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#a9b1c0] transition hover:bg-white/[0.06] hover:text-[#f8fafc]"
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+              Edit profile
+            </button>
+            <NavLink
+              to="/settings"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#a9b1c0] transition hover:bg-white/[0.06] hover:text-[#f8fafc]"
+            >
+              <Settings className="h-4 w-4" aria-hidden />
+              Settings
+            </NavLink>
+            <button
+              type="button"
+              onClick={clearCurrentSession}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#fca5a5] transition hover:bg-[#ef4444]/10"
+            >
+              <LogOut className="h-4 w-4" aria-hidden />
+              Clear and start new session
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function Layout() {
   const { userId } = useDemoSession()
+  const { data: users = [] } = useUsers()
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   useEscapeToClose(() => setDrawerOpen(false), drawerOpen)
+
+  const sessionUser = users.find((user) => user.id === userId)
+  const displayName = sessionUser?.displayName ?? DEMO_USER_NAME
+  const email = sessionUser?.email ?? DEMO_USER_EMAIL
 
   const openPalette = () => {
     window.dispatchEvent(new CustomEvent('pp:open-palette'))
@@ -290,7 +387,7 @@ export function Layout() {
     <div className="min-h-screen">
       <CommandPalette />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-white/10 bg-[#0a0d13]/90 lg:block">
-        <SidebarContent />
+        <SidebarContent name={displayName} email={email} onEditProfile={() => setProfileOpen(true)} />
       </aside>
 
       {drawerOpen && (
@@ -310,7 +407,15 @@ export function Layout() {
             >
               <X className="h-5 w-5" aria-hidden />
             </button>
-            <SidebarContent onNavigate={() => setDrawerOpen(false)} />
+            <SidebarContent
+              onNavigate={() => setDrawerOpen(false)}
+              name={displayName}
+              email={email}
+              onEditProfile={() => {
+                setDrawerOpen(false)
+                setProfileOpen(true)
+              }}
+            />
           </div>
         </div>
       )}
@@ -341,7 +446,11 @@ export function Layout() {
 
             <div className="ml-auto flex items-center gap-2">
               <NotificationBell />
-              <Avatar name={DEMO_USER_NAME} id={userId || DEMO_USER_NAME} size="md" />
+              <UserAvatarMenu
+                userId={userId}
+                name={displayName}
+                onEditProfile={() => setProfileOpen(true)}
+              />
             </div>
           </div>
         </header>
@@ -360,6 +469,15 @@ export function Layout() {
           </div>
         </footer>
       </div>
+
+      {profileOpen && (
+        <ProfileDialog
+          userId={userId}
+          name={displayName}
+          email={email}
+          onClose={() => setProfileOpen(false)}
+        />
+      )}
     </div>
   )
 }

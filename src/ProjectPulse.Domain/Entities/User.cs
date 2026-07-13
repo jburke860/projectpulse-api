@@ -24,4 +24,10 @@ public class User : BaseEntity
     {
         Id = id;
     }
+
+    public void Rename(string displayName)
+    {
+        DisplayName = displayName;
+        Touch();
+    }
 }

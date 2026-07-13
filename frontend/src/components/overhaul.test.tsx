@@ -7,6 +7,7 @@ import { Avatar } from './Avatar'
 import { CommandPalette } from './CommandPalette'
 import { DonutChart } from './DonutChart'
 import { FileTypeIcon } from './FileTypeIcon'
+import { ProfileDialog } from './ProfileDialog'
 import { TaskFilterMenu } from './TaskFilterMenu'
 
 describe('DonutChart', () => {
@@ -136,5 +137,34 @@ describe('CommandPalette', () => {
     await waitFor(() => {
       expect(screen.queryByPlaceholderText(/Search projects/)).not.toBeInTheDocument()
     })
+  })
+})
+
+describe('ProfileDialog', () => {
+  function renderDialog(onClose = vi.fn()) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, enabled: false } },
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProfileDialog userId="user-1" name="Demo User" email="jeremy.demo@projectpulse.local" onClose={onClose} />
+      </QueryClientProvider>,
+    )
+    return onClose
+  }
+
+  it('prefills the current display name and locks the email', () => {
+    renderDialog()
+    expect(screen.getByLabelText('Display name')).toHaveValue('Demo User')
+    expect(screen.getByLabelText('Email')).toBeDisabled()
+  })
+
+  it('disables saving when the name is emptied and closes on Cancel', () => {
+    const onClose = renderDialog()
+    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: '   ' } })
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

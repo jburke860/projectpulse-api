@@ -42,6 +42,39 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task UpdateMyProfile_RenamesSessionUser()
+    {
+        var session = await CreateDemoSession();
+
+        var response = await SendWithDemoSessionAsync(
+            HttpMethod.Put,
+            "/api/users/me",
+            session.SessionId,
+            new UpdateProfileRequest("Jamie Demo"));
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ApiResult<UserDto>>();
+        body!.Data!.DisplayName.Should().Be("Jamie Demo");
+
+        var usersResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/users?pageSize=100", session.SessionId);
+        var users = await usersResponse.Content.ReadFromJsonAsync<ApiResult<PagedResult<UserDto>>>();
+        users!.Data!.Items.Should().Contain(u => u.Id == session.UserId && u.DisplayName == "Jamie Demo");
+    }
+
+    [Fact]
+    public async Task UpdateMyProfile_RejectsEmptyName()
+    {
+        var session = await CreateDemoSession();
+
+        var response = await SendWithDemoSessionAsync(
+            HttpMethod.Put,
+            "/api/users/me",
+            session.SessionId,
+            new UpdateProfileRequest(""));
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task CreateProject_PersistsIconAndColor()
     {
         var response = await _client.PostAsJsonAsync(
@@ -114,7 +147,7 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
         users!.Data!.Items.Should().HaveCountGreaterThanOrEqualTo(15);
         var userData = users.Data.Items;
         userData.Select(u => u.DisplayName).Should().Contain(
-            ["Jeremy Burke", "Sarah Kim", "Marcus Lee", "Priya Patel", "Daniel Roberts"]);
+            ["Demo User", "Sarah Kim", "Marcus Lee", "Priya Patel", "Daniel Roberts"]);
         userData.Single(u => u.DisplayName == "Sarah Kim").Email.Should().Be("sarah.kim@projectpulse.local");
         userData.Select(u => u.Email).Should().NotContain(email => email.Contains($".{sessionCode}@"));
 

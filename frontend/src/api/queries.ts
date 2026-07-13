@@ -243,6 +243,19 @@ async function optimisticallyPatchTask(
   }
 }
 
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { displayName: string }) => putData<User>('/api/users/me', body),
+    onSuccess: () => {
+      toast.success('Profile updated.')
+      // The display name is baked into users, activity messages, comments,
+      // and task assignee fields, so refresh everything.
+      queryClient.invalidateQueries()
+    },
+  })
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({

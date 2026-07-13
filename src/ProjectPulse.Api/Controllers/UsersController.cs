@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using ProjectPulse.Application.Common.Models;
+using ProjectPulse.Application.Users.Commands;
 using ProjectPulse.Application.Users.Dtos;
 using ProjectPulse.Application.Users.Queries;
 
@@ -22,5 +23,14 @@ public class UsersController : ControllerBase
     {
         var result = await _mediator.Send(new GetUsersQuery(page, pageSize), cancellationToken);
         return Ok(ApiResult<PagedResult<UserDto>>.Ok(result));
+    }
+
+    [HttpPut("me")]
+    public async Task<ActionResult<ApiResult<UserDto>>> UpdateMe(
+        [FromBody] UpdateProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new UpdateMyProfileCommand(request), cancellationToken);
+        return Ok(ApiResult<UserDto>.Ok(result));
     }
 }

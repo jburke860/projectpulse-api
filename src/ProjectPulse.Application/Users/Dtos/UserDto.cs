@@ -6,3 +6,5 @@ public record UserDto(
     string Email,
     int ProjectCount,
     int AssignedTaskCount);
+
+public record UpdateProfileRequest(string DisplayName);

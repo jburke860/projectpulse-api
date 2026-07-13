@@ -129,7 +129,7 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
   const visible = filtered.slice(0, 6)
 
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="flex flex-1 flex-col p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <SquareCheck className="h-4 w-4 text-[#ffb36c]" aria-hidden />
@@ -203,7 +203,7 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
 
       <Link
         to="/tasks"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
+        className="mt-auto inline-flex items-center gap-1.5 self-start pt-4 text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]"
       >
         View all tasks
         <ArrowRight className="h-4 w-4" aria-hidden />
@@ -223,7 +223,7 @@ function UpcomingDeadlinesCard({ tasks }: { tasks: Task[] }) {
     .slice(0, 5)
 
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className="flex flex-1 flex-col p-5 sm:p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-[#ffb36c]" aria-hidden />
@@ -316,6 +316,8 @@ export function DashboardPage() {
     )
   }
 
+  const sessionUser = users.find((user) => user.id === userId)
+  const displayName = sessionUser?.displayName ?? 'Demo User'
   const completionPercent = data.totalTasks > 0
     ? Math.round(((data.tasksByStatus.find((s) => s.status === 'Done')?.count ?? 0) / data.totalTasks) * 100)
     : 0
@@ -353,7 +355,7 @@ export function DashboardPage() {
         <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="text-2xl font-extrabold tracking-normal text-[#f8fafc] sm:text-3xl">
-              {getGreeting()}, Demo User!
+              {getGreeting()}, {displayName}!
             </h1>
             <p className="mt-2 max-w-2xl text-[#cbd5e1]">
               Here's what's happening across your workspace.
@@ -386,8 +388,10 @@ export function DashboardPage() {
         <StatCard label="Team Members" value={data.teamMemberCount} hint="Active" accent="violet" icon={Users} />
       </div>
 
+      {/* Both columns are flex with a stretching bottom card so their
+          bottom edges align exactly regardless of content height. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -404,7 +408,7 @@ export function DashboardPage() {
           <MyTasksCard tasks={tasks} userId={userId} />
         </div>
 
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           <Card className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
