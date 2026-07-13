@@ -2,7 +2,7 @@
 
 ProjectPulse is a production-style project-management portfolio app built with an **ASP.NET Core 8 Clean Architecture API** and a **React/Vite/Tailwind dashboard**. It demonstrates realistic project and task workflows with project membership, role-based permissions, task assignment, status transitions, comments, audit history, Swagger/OpenAPI documentation, demo-session isolation, and automated tests.
 
-The backend is the core of the project. The frontend is a polished demo client that makes the API workflow easy to review through a public portfolio-ready interface.
+The backend is the core of the project. The frontend is a full workspace dashboard around it: a sidebar app shell with nine sections (Dashboard, Projects, Tasks, Activity, Calendar, Documents, Teams, Reports, Settings), a Cmd+K command palette, notification previews, an editable demo profile, and customizable project icons and colors.
 
 ## Live Demo
 
@@ -35,7 +35,14 @@ The backend is the core of the project. The frontend is a polished demo client t
 * Rate limiting (global per-session budget plus a stricter demo-session-creation policy)
 * Structured logging with Serilog request logging
 * Swagger/OpenAPI for direct API exploration
+* Dashboard aggregates: task/project status breakdowns, team counts, and a pure-SVG donut chart
+* Customizable project appearance (icon + color) persisted through create and edit endpoints
+* Editable demo profile (display name + avatar color) via `PUT /api/users/me`
 * React dashboard with optimistic updates, toasts, skeleton loading, and confirm dialogs
+* Sidebar app shell with global Tasks, Calendar, Documents, Teams, Reports, and Settings pages
+* Working Cmd+K command palette across navigation, projects, and tasks
+* Preview-then-jump dialogs for notifications, activity, calendar chips, and task rows
+* CSS motion system (dialog/menu/page transitions) honoring `prefers-reduced-motion`
 * Unit, integration, and frontend component tests wired into CI
 
 ## Tech Stack
@@ -71,41 +78,29 @@ flowchart TB
 
 ## Demo Screenshots
 
-### Demo Session Start
-
-ProjectPulse uses a lightweight public demo-session flow instead of full user accounts. Visitors can start a temporary workspace with realistic seeded projects, tasks, members, and activity.
-
-![ProjectPulse demo session start](readme_images/demo_loading.png)
-
 ### Dashboard
 
-The dashboard summarizes the seeded workspace with project/task metrics, recent activity, and a quick-start guide for exploring the demo.
+The dashboard greets the demo user with workspace stats, a project-status donut with overall progress, recent activity, a tabbed My Tasks table, top team members with presence, and upcoming deadlines. The top bar has global search (Cmd+K) and a notification bell filtered to events involving the demo user.
 
 ![ProjectPulse dashboard](readme_images/dashboard.png)
 
-### Projects Workspace
+### Task Detail
 
-The Projects page presents realistic project cards with descriptions, task counts, member counts, and workspace-level actions.
+Tasks open in a centered modal with a locked read view: status, priority, due date, assignee, labels, attachments, comments, and "Edited by" attribution. An Edit toggle reveals the full editing form, and activity links can deep-link into a specific comment.
 
-![ProjectPulse projects page](readme_images/projects.png)
+![ProjectPulse task detail modal](readme_images/task_detail.png)
 
-### Project Detail, Tasks, Members, And Activity
+### Global Tasks With Preview-Then-Jump
 
-Project detail pages show project metrics, progress, task cards, task creation, member management, role labels, and recent project activity in one workspace view.
+The Tasks page lists every task across projects with search, a project scope, and a combined Filters menu (status, priority, assignee, label). Clicking a task shows a preview dialog first, with an explicit "Jump to task" action - the same pattern used by notifications, activity, and calendar entries.
 
-![ProjectPulse project detail page](readme_images/projects_detail.png)
+![ProjectPulse tasks page with preview dialog](readme_images/tasks_preview.png)
 
-### Task Creation Flow
+### Project Creation With Icon And Color
 
-The task creation flow captures enough information for a realistic task: title, detailed description, priority, status, due date, eligible assignee, file-upload placeholder, and optional context notes.
+New projects capture details, members with roles, and starter files, plus a persisted appearance: a 12-icon picker and 8 color swatches that brand the project's tile across the app. Projects can be renamed and restyled later from an Edit project dialog.
 
-![ProjectPulse task creation flow](readme_images/task_create.png)
-
-### Activity Details
-
-The Activity page provides an audit-style history of workspace events. Activity cards are clickable and open a detail view with actor, timestamp, action type, related task/project context, and comments when available.
-
-![ProjectPulse activity detail modal](readme_images/activity_1.png)
+![ProjectPulse new project form with icon and color picker](readme_images/project_create.png)
 
 ### Swagger/OpenAPI
 
@@ -116,9 +111,10 @@ Swagger exposes the raw API contract for dashboard, demo sessions, projects, tas
 ## Core Workflows
 
 * Start a public demo session with seeded project/task/member data.
-* View dashboard metrics for projects, open tasks, completed tasks, overdue tasks, and recent activity.
-* Browse realistic seeded projects with lifecycle status badges.
-* Create projects with name, description, status, member selection, and role assignment.
+* View dashboard metrics for projects, open tasks, completed tasks, overdue tasks, team members, and recent activity.
+* Browse realistic seeded projects with lifecycle status badges and themed icon tiles.
+* Create projects with name, description, status, icon/color appearance, member selection, and role assignment.
+* Edit a project's name, description, icon, and color from the project actions menu.
 * Add members to a project as `Admin`, `Member`, or `Viewer`.
 * Remove project members while protecting the final admin.
 * Create tasks with title, detailed description, priority, status, due date, eligible assignee, file attachments, and optional context.
@@ -129,8 +125,13 @@ Swagger exposes the raw API contract for dashboard, demo sessions, projects, tas
 * Upload, download, and delete task file attachments (5 MB limit, extension allowlist).
 * Keep essential project files in a dedicated section at the top of each project.
 * Attach labels and files while creating a task, and see file names on task cards.
-* Filter and search tasks by status, priority, assignee, and text.
+* Filter and search tasks by status, priority, assignee, label, and text - per project or across the whole workspace.
 * Add comments to tasks.
+* Jump anywhere with the Cmd+K command palette (navigation, projects, tasks).
+* Preview notifications, activity, calendar chips, and task rows in a dialog before jumping to them.
+* Browse tasks by due date on a month calendar and all workspace files on the Documents page.
+* Review client-computed reports: task status donut, per-project progress, priority breakdown, and overdue table.
+* Edit the demo profile's display name and avatar color from the account menu.
 * Review audit history across project and workspace activity feeds.
 * Click activity records to inspect detailed event context.
 * Inspect and test endpoints directly through Swagger.
@@ -177,19 +178,22 @@ The Vite dev server proxies `/api` to `http://localhost:5000`.
 
 1. Start the API and frontend.
 2. Click **Start New Demo Session** to create an isolated seeded workspace for this browser.
-3. Review dashboard metrics and recent activity.
-4. Open the Projects page and browse seeded projects.
-5. Create a project with a name, description, status, and member roles.
-6. Open a project detail page and review tasks, members, progress, and recent activity.
+3. Review the dashboard: stat cards, project-status donut, recent activity, My Tasks tabs, team presence, and upcoming deadlines.
+4. Open the Projects page and browse seeded projects with their themed icon tiles.
+5. Create a project with a name, description, status, icon, color, and member roles.
+6. Open a project detail page and review tasks, members, progress, files, and recent activity.
 7. Add project members as `Admin`, `Member`, or `Viewer`.
 8. Create a task with a detailed description, priority, status, due date, eligible assignee, file attachments, and context notes.
 9. Switch to the Board view and drag tasks between status columns.
 10. Open a task to change status, priority, due date, assignee, labels, attachments, and comments.
-11. Remove a project member and confirm their assigned project tasks become unassigned.
-12. Open Activity to review audit entries for tasks, assignments, comments, attachments, and membership changes.
-13. Click an activity record to inspect detailed event context.
-14. Open Swagger to inspect and test the raw API endpoints.
-15. Use **Clear and start new session** to create a fresh seeded workspace.
+11. Press Cmd+K (or Ctrl+K) and jump to any page, project, or task from the command palette.
+12. Check the notification bell and click an entry to preview it before jumping to the task.
+13. Explore the global Tasks, Calendar, Documents, Teams, and Reports pages.
+14. Open the account menu to edit the demo profile's display name and avatar color.
+15. Remove a project member and confirm their assigned project tasks become unassigned.
+16. Open Activity to review audit entries for tasks, assignments, comments, attachments, and membership changes.
+17. Open Swagger to inspect and test the raw API endpoints.
+18. Use **Clear and start new session** to create a fresh seeded workspace.
 
 ## API Highlights
 
@@ -197,15 +201,20 @@ The Vite dev server proxies `/api` to `http://localhost:5000`.
 # List projects (paginated)
 curl "http://localhost:5000/api/projects?page=1&pageSize=20"
 
-# Create a project with a lifecycle status
+# Create a project with a lifecycle status and appearance
 curl -X POST http://localhost:5000/api/projects \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Planning"}'
+  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Planning","icon":"rocket","color":"#ff7b22"}'
 
-# Update a project (name, description, status)
+# Update a project (name, description, status, optional icon/color)
 curl -X PUT http://localhost:5000/api/projects/{projectId} \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Active"}'
+  -d '{"name":"Sprint 42","description":"Q2 delivery","status":"Active","icon":"shield","color":"#ef4444"}'
+
+# Update the session user's profile (display name, avatar color)
+curl -X PUT http://localhost:5000/api/users/me \
+  -H "Content-Type: application/json" \
+  -d '{"displayName":"Jamie Demo","avatarColor":"#14b8a6"}'
 
 # Add a project member
 curl -X POST http://localhost:5000/api/projects/{projectId}/members \
@@ -303,7 +312,7 @@ npm test
 npm run build
 ```
 
-The backend suite includes unit tests for domain rules, validators, and pagination plus integration tests for API workflows: project CRUD and statuses, labels, attachment upload/download round-trips, pagination clamps, rate limiting, demo-session isolation, task updates, status changes, and member add/remove behavior. The frontend suite covers shared helpers (status transitions, error formatting) and component rendering with Vitest and Testing Library.
+The backend suite includes unit tests for domain rules, validators, and pagination plus integration tests for API workflows: project CRUD, statuses, and appearance persistence, labels, attachment upload/download round-trips, dashboard and user aggregates, profile updates, pagination clamps, rate limiting, demo-session isolation, task updates, status changes, and member add/remove behavior. The frontend suite covers shared helpers (status transitions, greetings, presence, calendar math, dates, avatars, project icons) and component rendering (donut chart, filter menu, command palette, profile dialog) with Vitest and Testing Library.
 
 ## CI
 
@@ -333,5 +342,4 @@ frontend/
 * Persistent hosted database for longer-lived public demo sessions
 * Role editing for existing project members
 * Cloud blob storage (S3/Azure) for attachments in hosted environments
-* More detailed dashboard charts and reporting filters
 * User account registration and workspace invite flow

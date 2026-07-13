@@ -10,7 +10,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react'
-import { useProjectLabels, useProjects, useTasks, useUsers, type TaskFilters } from '../api/queries'
+import { useProjects, useTasks, useUsers, type TaskFilters } from '../api/queries'
 import type { Task } from '../api/types'
 import { EmptyState } from '../components/EmptyState'
 import { LabelChip } from '../components/LabelChip'
@@ -45,21 +45,30 @@ export function TasksPage() {
   const { data: projects = [] } = useProjects()
   const { data: users = [] } = useUsers()
   const { data: tasks = [], isLoading } = useTasks(projectId || undefined, taskFilters)
-  // Labels are per-project, so the label filter is only offered when scoped.
-  const { data: scopedLabels = [] } = useProjectLabels(projectId)
+
+  // Labels are per-project entities, so the cross-project filter matches by
+  // name: options are deduped from the loaded tasks' labels.
+  const labelsByName = new Map<string, { id: string; name: string; color: string }>()
+  for (const task of tasks) {
+    for (const label of task.labels) {
+      if (!labelsByName.has(label.name)) {
+        labelsByName.set(label.name, { id: label.name, name: label.name, color: label.color })
+      }
+    }
+  }
+  const labelOptions = [...labelsByName.values()].sort((a, b) => a.name.localeCompare(b.name))
 
   const hasActiveFilters = Boolean(
     filters.status || filters.priority || filters.assigneeId || filters.labelId || projectId || searchText,
   )
   const visibleTasks = tasks.filter(
     (task) =>
-      (!filters.labelId || task.labels.some((label) => label.id === filters.labelId)) &&
+      (!filters.labelId || task.labels.some((label) => label.name === filters.labelId)) &&
       (!searchText ||
         `${task.title} ${task.description ?? ''} ${task.projectName}`
           .toLowerCase()
           .includes(searchText.toLowerCase())),
   )
-  // Labels differ per project; only offer the label filter when scoped to one.
   const scopedProject = projects.find((project) => project.id === projectId)
 
   return (
@@ -91,10 +100,7 @@ export function TasksPage() {
           aria-label="Filter by project"
           className="pp-select w-auto text-sm"
           value={projectId}
-          onChange={(e) => {
-            setProjectId(e.target.value)
-            setFilters((current) => ({ ...current, labelId: '' }))
-          }}
+          onChange={(e) => setProjectId(e.target.value)}
         >
           <option value="">All projects</option>
           {projects.map((project) => (
@@ -106,7 +112,7 @@ export function TasksPage() {
         <TaskFilterMenu
           filters={filters}
           assignees={users.map((user) => ({ userId: user.id, displayName: user.displayName }))}
-          labels={scopedLabels}
+          labels={labelOptions}
           onChange={setFilters}
         />
         {hasActiveFilters && (
