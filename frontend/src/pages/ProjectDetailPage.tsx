@@ -304,7 +304,7 @@ export function ProjectDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <ProjectIconTile projectId={project.id} />
+              <ProjectIconTile projectId={project.id} icon={project.icon} color={project.color} />
               <h1 className="pp-title">{project.name}</h1>
               <Badge tone={projectStatusTone(project.status)}>{formatProjectStatus(project.status)}</Badge>
             </div>
@@ -972,20 +972,12 @@ export function ProjectDetailPage() {
       </div>
 
       {selectedTaskId && (
-        <>
-          <button
-            type="button"
-            className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
-            aria-label="Close task panel"
-            onClick={() => setSearchParams({}, { replace: true })}
-          />
-          <TaskPanel
-            taskId={selectedTaskId}
-            projectId={id}
-            focusComment={focusComment}
-            onClose={() => setSearchParams({}, { replace: true })}
-          />
-        </>
+        <TaskPanel
+          taskId={selectedTaskId}
+          projectId={id}
+          focusComment={focusComment}
+          onClose={() => setSearchParams({}, { replace: true })}
+        />
       )}
 
       <ConfirmDialog

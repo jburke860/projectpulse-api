@@ -104,7 +104,9 @@ public static class SeedData
                     "Expired links are handled correctly. I found one missing success event after the final redirect.",
                     ["qa", "security"])
             ],
-            Files: ["project-brief.pdf", "onboarding-requirements.xlsx", "design-review-notes.md"]),
+            Files: ["project-brief.pdf", "onboarding-requirements.xlsx", "design-review-notes.md"],
+            Icon: "rocket",
+            Color: "#ff7b22"),
         new(
             "Internal Ops Automation",
             "Automate recurring operations workflows, reduce manual status tracking, and improve team handoff visibility.",
@@ -163,7 +165,9 @@ public static class SeedData
                     "The stale exception trigger is firing correctly. Pending approval reminders still need the new delay window.",
                     ["backend", "qa"])
             ],
-            Files: ["automation-scope.pdf", "workflow-inventory.xlsx", "stakeholder-signoff.md"]),
+            Files: ["automation-scope.pdf", "workflow-inventory.xlsx", "stakeholder-signoff.md"],
+            Icon: "workflow",
+            Color: "#f59e0b"),
         new(
             "API Reliability Sprint",
             "Improve backend stability, task workflow validation, and observability for project-management operations.",
@@ -221,7 +225,9 @@ public static class SeedData
                     "This is the right coverage for the customer bug. Please include the project-admin case too.",
                     ["qa", "backend"])
             ],
-            Files: ["reliability-plan.pdf", "sla-targets.xlsx", "incident-runbook.md"]),
+            Files: ["reliability-plan.pdf", "sla-targets.xlsx", "incident-runbook.md"],
+            Icon: "wrench",
+            Color: "#14b8a6"),
         new(
             "Billing Insights Launch",
             "Give finance and account teams clearer subscription, invoice, and usage signals before renewal conversations.",
@@ -280,7 +286,9 @@ public static class SeedData
                     ["qa", "backend"])
             ],
             Status: ProjectStatus.Planning,
-            Files: ["launch-brief.pdf", "metric-definitions.xlsx", "finance-signoff.md"]),
+            Files: ["launch-brief.pdf", "metric-definitions.xlsx", "finance-signoff.md"],
+            Icon: "bar-chart",
+            Color: "#22c55e"),
         new(
             "Mobile Field Updates",
             "Improve mobile task updates for field teams with offline-friendly notes, attachments, and status sync.",
@@ -339,7 +347,9 @@ public static class SeedData
                     ["qa", "frontend"])
             ],
             Status: ProjectStatus.OnHold,
-            Files: ["product-brief.pdf", "offline-sync-spec.md", "field-test-plan.xlsx"]),
+            Files: ["product-brief.pdf", "offline-sync-spec.md", "field-test-plan.xlsx"],
+            Icon: "smartphone",
+            Color: "#38bdf8"),
         new(
             "Partner Integrations Hub",
             "Centralize partner configuration, onboarding status, and integration health signals.",
@@ -398,7 +408,9 @@ public static class SeedData
                     ["security", "docs"])
             ],
             Status: ProjectStatus.Planning,
-            Files: ["integration-overview.pdf", "partner-states.xlsx", "security-checklist.md"]),
+            Files: ["integration-overview.pdf", "partner-states.xlsx", "security-checklist.md"],
+            Icon: "globe",
+            Color: "#8b5cf6"),
         new(
             "Data Visibility Upgrade",
             "Improve reporting confidence with clearer dashboard metrics, activity filters, and export controls.",
@@ -457,7 +469,9 @@ public static class SeedData
                     ["docs", "product"])
             ],
             Status: ProjectStatus.Completed,
-            Files: ["reporting-brief.pdf", "export-contract.xlsx", "release-notes.md"]),
+            Files: ["reporting-brief.pdf", "export-contract.xlsx", "release-notes.md"],
+            Icon: "database",
+            Color: "#ec4899"),
         new(
             "Security and Compliance Readiness",
             "Prepare project workflows for enterprise security reviews with clearer access, audit, and retention controls.",
@@ -515,7 +529,9 @@ public static class SeedData
                     "Evidence packet is ready for the first customer review. Keep the audit samples current after launch.",
                     ["security", "docs"])
             ],
-            Files: ["compliance-overview.pdf", "permissions-matrix.xlsx", "evidence-index.md"])
+            Files: ["compliance-overview.pdf", "permissions-matrix.xlsx", "evidence-index.md"],
+            Icon: "shield",
+            Color: "#ef4444")
     ];
 
     public static async Task InitializeAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
@@ -561,7 +577,7 @@ public static class SeedData
             .ToDictionary(entry => entry.LocalPart, entry => entry.User);
 
         var projectEntries = Projects
-            .Select(projectSeed => new ProjectEntry(projectSeed, new Project(projectSeed.Name, projectSeed.Description, projectSeed.Status)))
+            .Select(projectSeed => new ProjectEntry(projectSeed, new Project(projectSeed.Name, projectSeed.Description, projectSeed.Status, projectSeed.Icon, projectSeed.Color)))
             .ToList();
 
         db.Projects.AddRange(projectEntries.Select(entry => entry.Project));
@@ -858,7 +874,9 @@ public static class SeedData
         string[] MemberLocalParts,
         TaskSeed[] Tasks,
         ProjectStatus Status = ProjectStatus.Active,
-        string[]? Files = null);
+        string[]? Files = null,
+        string? Icon = null,
+        string? Color = null);
 
     private sealed record TaskSeed(
         string Title,

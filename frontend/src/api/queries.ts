@@ -246,7 +246,7 @@ async function optimisticallyPatchTask(
 export function useCreateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; description?: string; status?: string }) =>
+    mutationFn: (body: { name: string; description?: string; status?: string; icon?: string; color?: string }) =>
       postData<Project>('/api/projects', body),
     onSuccess: (project) => {
       toast.success(`Project "${project.name}" created.`)

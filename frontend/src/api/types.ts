@@ -28,6 +28,8 @@ export interface Project {
   createdAtUtc: string
   memberCount: number
   taskCount: number
+  icon: string | null
+  color: string | null
 }
 
 export interface ProjectSummary {

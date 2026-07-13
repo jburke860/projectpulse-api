@@ -29,6 +29,21 @@ describe('ProjectIconTile', () => {
     const { container: second } = render(<ProjectIconTile projectId="project-a" />)
     expect(first.innerHTML).toBe(second.innerHTML)
   })
+
+  it('uses the chosen color instead of the hash-based gradient', () => {
+    const { container } = render(
+      <ProjectIconTile projectId="project-a" icon="shield" color="#ef4444" />,
+    )
+    const tile = container.firstElementChild as HTMLElement
+    expect(tile.style.background).toContain('135deg')
+    expect(tile.className).not.toContain('bg-gradient-to-br')
+  })
+
+  it('falls back to the hash style for unknown icons without a color', () => {
+    const { container } = render(<ProjectIconTile projectId="project-a" icon="does-not-exist" />)
+    const tile = container.firstElementChild as HTMLElement
+    expect(tile.className).toContain('bg-gradient-to-br')
+  })
 })
 
 describe('LabelChip', () => {

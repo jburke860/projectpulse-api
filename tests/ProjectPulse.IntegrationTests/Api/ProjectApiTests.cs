@@ -42,6 +42,32 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task CreateProject_PersistsIconAndColor()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest("Appearance Project", "Icon and color test", null, "shield", "#ef4444"));
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var created = await response.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
+        created!.Data!.Icon.Should().Be("shield");
+        created.Data.Color.Should().Be("#ef4444");
+
+        var fetched = await _client.GetFromJsonAsync<ApiResult<ProjectDto>>($"/api/projects/{created.Data.Id}");
+        fetched!.Data!.Icon.Should().Be("shield");
+        fetched.Data.Color.Should().Be("#ef4444");
+    }
+
+    [Fact]
+    public async Task CreateProject_RejectsInvalidColor()
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest("Bad Color Project", null, null, "shield", "not-a-color"));
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task DemoSessions_IsolateProjectLists()
     {
         var sessionA = await CreateDemoSession();

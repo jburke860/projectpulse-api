@@ -33,7 +33,9 @@ public class GetProjectByIdQueryHandler : IRequestHandler<GetProjectByIdQuery, P
                 p.Status.ToString(),
                 p.CreatedAtUtc,
                 p.Members.Count,
-                p.Tasks.Count))
+                p.Tasks.Count,
+                p.Icon,
+                p.Color))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Project {query.Id} was not found.");
 

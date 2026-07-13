@@ -18,6 +18,7 @@ import { ProjectGridSkeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { Badge, Button, Card } from '../components/ui'
 import { getMutationErrorMessage } from '../lib/errors'
+import { lightenColor, projectColorOptions, projectIconOptions } from '../lib/projectIcons'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
 import { projectRoles, type ProjectRole } from '../lib/roles'
 
@@ -42,6 +43,8 @@ export function ProjectsPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('Active')
+  const [icon, setIcon] = useState(projectIconOptions[0].name)
+  const [color, setColor] = useState(projectColorOptions[0])
   // Deep link from the dashboard's New Project action.
   const [showForm, setShowForm] = useState(() => searchParams.get('create') === '1')
   const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([])
@@ -82,6 +85,8 @@ export function ProjectsPage() {
     setName('')
     setDescription('')
     setStatus('Active')
+    setIcon(projectIconOptions[0].name)
+    setColor(projectColorOptions[0])
     setMemberUserId('')
     setMemberRole('Member')
     setFormError(null)
@@ -135,6 +140,8 @@ export function ProjectsPage() {
         name: name.trim(),
         description: description.trim() || undefined,
         status,
+        icon,
+        color,
       })
       setIsFinalizingProject(true)
 
@@ -257,6 +264,60 @@ export function ProjectsPage() {
                 ))}
               </select>
             </label>
+            <div className="pp-label">
+              Icon
+              <div role="radiogroup" aria-label="Project icon" className="flex flex-wrap gap-2">
+                {projectIconOptions.map((option) => {
+                  const selected = option.name === icon
+                  const OptionIcon = option.icon
+
+                  return (
+                    <button
+                      key={option.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`${option.label} icon`}
+                      title={option.label}
+                      onClick={() => setIcon(option.name)}
+                      className={`flex h-11 w-11 items-center justify-center rounded-[0.85rem] border text-white transition ${
+                        selected
+                          ? 'border-white/40 ring-2 ring-[#ff7b22]/60 ring-offset-2 ring-offset-[#0a0d13]'
+                          : 'border-white/10 opacity-60 hover:opacity-100'
+                      }`}
+                      style={{ background: `linear-gradient(135deg, ${color}, ${lightenColor(color)})` }}
+                    >
+                      <OptionIcon className="h-5 w-5" aria-hidden />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="pp-label">
+              Color
+              <div role="radiogroup" aria-label="Project color" className="flex flex-wrap items-center gap-2">
+                {projectColorOptions.map((option) => {
+                  const selected = option === color
+
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`Color ${option}`}
+                      onClick={() => setColor(option)}
+                      className={`h-8 w-8 rounded-full border transition ${
+                        selected
+                          ? 'border-white/70 ring-2 ring-white/30 ring-offset-2 ring-offset-[#0a0d13]'
+                          : 'border-white/10 opacity-70 hover:opacity-100'
+                      }`}
+                      style={{ background: `linear-gradient(135deg, ${option}, ${lightenColor(option)})` }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
           </section>
 
           <section className="space-y-4 border-t pp-divider pt-5">
@@ -415,7 +476,7 @@ export function ProjectsPage() {
         {projects.map((project) => (
           <Card key={project.id} interactive className="group flex min-h-[15rem] flex-col p-5 sm:p-6">
             <Link to={`/projects/${project.id}`} className="flex flex-1 flex-col">
-              <ProjectIconTile projectId={project.id} />
+              <ProjectIconTile projectId={project.id} icon={project.icon} color={project.color} />
               <div className="mt-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-lg font-bold text-[#f8fafc] transition group-hover:text-[#fed7aa]">

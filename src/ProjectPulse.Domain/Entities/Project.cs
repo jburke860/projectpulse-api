@@ -8,6 +8,8 @@ public class Project : BaseEntity
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public ProjectStatus Status { get; private set; } = ProjectStatus.Active;
+    public string? Icon { get; private set; }
+    public string? Color { get; private set; }
 
     public ICollection<ProjectMember> Members { get; private set; } = [];
     public ICollection<TaskItem> Tasks { get; private set; } = [];
@@ -19,11 +21,13 @@ public class Project : BaseEntity
     {
     }
 
-    public Project(string name, string? description = null, ProjectStatus status = ProjectStatus.Active)
+    public Project(string name, string? description = null, ProjectStatus status = ProjectStatus.Active, string? icon = null, string? color = null)
     {
         Name = name;
         Description = description;
         Status = status;
+        Icon = icon;
+        Color = color;
     }
 
     public void Update(string name, string? description, ProjectStatus status)

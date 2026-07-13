@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarDays, Download, Paperclip, Pencil, PenLine, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Task } from '../api/types'
@@ -89,22 +90,44 @@ export function TaskPanel({ taskId, projectId, onClose, focusComment }: TaskPane
   const { data: task, isLoading } = useTask(taskId)
   useEscapeToClose(onClose)
 
+  // Portaled to <body> (overlay included) so animated/transformed ancestors
+  // like the route-transition wrapper can never become the containing block
+  // and clip the backdrop to the content area.
   if (isLoading || !task) {
-    return (
-      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl">
-        <p className="pp-subtitle">Loading task...</p>
-      </aside>
+    return createPortal(
+      <>
+        <TaskPanelOverlay onClose={onClose} />
+        <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl">
+          <p className="pp-subtitle">Loading task...</p>
+        </aside>
+      </>,
+      document.body,
     )
   }
 
+  return createPortal(
+    <>
+      <TaskPanelOverlay onClose={onClose} />
+      <LoadedTaskPanel
+        key={task.id}
+        task={task}
+        taskId={taskId}
+        projectId={projectId}
+        onClose={onClose}
+        focusComment={focusComment}
+      />
+    </>,
+    document.body,
+  )
+}
+
+function TaskPanelOverlay({ onClose }: { onClose: () => void }) {
   return (
-    <LoadedTaskPanel
-      key={task.id}
-      task={task}
-      taskId={taskId}
-      projectId={projectId}
-      onClose={onClose}
-      focusComment={focusComment}
+    <button
+      type="button"
+      className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
+      aria-label="Close task panel"
+      onClick={onClose}
     />
   )
 }

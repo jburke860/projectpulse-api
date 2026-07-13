@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle } from 'lucide-react'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { Button } from './ui'
@@ -61,7 +62,9 @@ export function ConfirmDialog({
 
   if (!open) return null
 
-  return (
+  // Portaled to <body> so transformed/animated ancestors can never hijack
+  // the fixed overlay and dialog positioning.
+  return createPortal(
     <>
       <button
         type="button"
@@ -96,6 +99,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

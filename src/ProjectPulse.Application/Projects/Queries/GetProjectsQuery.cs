@@ -39,7 +39,9 @@ public class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, PagedRe
                 p.Status.ToString(),
                 p.CreatedAtUtc,
                 p.Members.Count,
-                p.Tasks.Count))
+                p.Tasks.Count,
+                p.Icon,
+                p.Color))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProjectDto>(items, totalCount, page, pageSize);

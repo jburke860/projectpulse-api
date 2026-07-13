@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '../lib/cn'
+import { lightenColor, projectIconsByName } from '../lib/projectIcons'
 
 interface TileStyle {
   icon: LucideIcon
@@ -37,20 +38,33 @@ function hashString(value: string) {
 
 interface ProjectIconTileProps {
   projectId: string
+  icon?: string | null
+  color?: string | null
   className?: string
   iconClassName?: string
 }
 
-export function ProjectIconTile({ projectId, className, iconClassName }: ProjectIconTileProps) {
-  const { icon: Icon, gradient } = tileStyles[hashString(projectId) % tileStyles.length]
+export function ProjectIconTile({ projectId, icon, color, className, iconClassName }: ProjectIconTileProps) {
+  // Projects created before the picker existed fall back to a deterministic
+  // hash-based style so every tile still gets a stable icon and color.
+  const fallback = tileStyles[hashString(projectId) % tileStyles.length]
+  const Icon = (icon ? projectIconsByName[icon] : undefined) ?? fallback.icon
 
   return (
     <span
       className={cn(
         'inline-flex h-11 w-11 items-center justify-center rounded-[0.85rem] border border-white/10 text-white',
-        gradient,
+        !color && fallback.gradient,
         className,
       )}
+      style={
+        color
+          ? {
+              background: `linear-gradient(135deg, ${color}, ${lightenColor(color)})`,
+              boxShadow: `0 12px 28px ${color}47`,
+            }
+          : undefined
+      }
     >
       <Icon className={cn('h-5 w-5', iconClassName)} aria-hidden />
     </span>

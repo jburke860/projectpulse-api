@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Activity,
   ArrowRight,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   Clock,
@@ -207,6 +208,71 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
         View all tasks
         <ArrowRight className="h-4 w-4" aria-hidden />
       </Link>
+
+      <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
+    </Card>
+  )
+}
+
+function UpcomingDeadlinesCard({ tasks }: { tasks: Task[] }) {
+  const [previewTask, setPreviewTask] = useState<Task | null>(null)
+
+  const upcoming = tasks
+    .filter((task) => task.dueDateUtc && task.status !== 'Done' && task.status !== 'Cancelled')
+    .sort((a, b) => new Date(a.dueDateUtc!).getTime() - new Date(b.dueDateUtc!).getTime())
+    .slice(0, 5)
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-[#ffb36c]" aria-hidden />
+          <h2 className="text-lg font-bold text-[#f8fafc]">Upcoming Deadlines</h2>
+        </div>
+        <Link to="/calendar" className="text-sm font-semibold text-[#ffb36c] hover:text-[#fed7aa]">
+          Open calendar
+        </Link>
+      </div>
+
+      {upcoming.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-[#8e99ad]">
+          No open tasks with due dates.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-1.5">
+          {upcoming.map((task) => {
+            const overdue = isTaskOverdue(task)
+
+            return (
+              <li key={task.id}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewTask(task)}
+                  className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.04]"
+                >
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                      overdue ? 'bg-[#ef4444]/15 text-[#fca5a5]' : 'bg-[#ff7b22]/12 text-[#ffb36c]'
+                    }`}
+                    aria-hidden
+                  >
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-[#f8fafc]">{task.title}</span>
+                    <span className="block truncate text-xs text-[#8e99ad]">{task.projectName}</span>
+                  </span>
+                  <span
+                    className={`shrink-0 text-xs ${overdue ? 'font-semibold text-[#fca5a5]' : 'text-[#8e99ad]'}`}
+                  >
+                    {formatShortDate(task.dueDateUtc!)}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
       <TaskPreviewDialog task={previewTask} onClose={() => setPreviewTask(null)} />
     </Card>
@@ -433,6 +499,8 @@ export function DashboardPage() {
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </Card>
+
+          <UpcomingDeadlinesCard tasks={tasks} />
         </div>
       </div>
     </div>

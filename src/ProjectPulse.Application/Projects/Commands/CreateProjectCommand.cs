@@ -19,6 +19,11 @@ public class CreateProjectCommandValidator : AbstractValidator<CreateProjectComm
         RuleFor(x => x.Request.Status)
             .Must(s => s == null || Enum.TryParse<ProjectStatus>(s, true, out _))
             .WithMessage("Status must be one of: Planning, Active, OnHold, Completed.");
+        RuleFor(x => x.Request.Icon).MaximumLength(40);
+        RuleFor(x => x.Request.Color)
+            .Matches("^#[0-9a-fA-F]{6}$")
+            .When(x => x.Request.Color is not null)
+            .WithMessage("Color must be a hex value like #ff7b22.");
     }
 }
 
@@ -50,12 +55,12 @@ public class CreateProjectCommandHandler : IRequestHandler<CreateProjectCommand,
             ? ProjectStatus.Active
             : Enum.Parse<ProjectStatus>(command.Request.Status, true);
 
-        var project = new Project(command.Request.Name, command.Request.Description, status);
+        var project = new Project(command.Request.Name, command.Request.Description, status, command.Request.Icon, command.Request.Color);
         _db.Projects.Add(project);
         _db.ProjectMembers.Add(new ProjectMember(project.Id, _currentUser.UserId, ProjectRole.Admin));
         await _audit.LogAsync(project.Id, null, AuditAction.Created, nameof(Project), $"Project '{project.Name}' created.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new ProjectDto(project.Id, project.Name, project.Description, project.Status.ToString(), project.CreatedAtUtc, 1, 0);
+        return new ProjectDto(project.Id, project.Name, project.Description, project.Status.ToString(), project.CreatedAtUtc, 1, 0, project.Icon, project.Color);
     }
 }

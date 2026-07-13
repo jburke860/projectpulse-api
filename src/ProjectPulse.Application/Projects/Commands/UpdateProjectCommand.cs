@@ -67,6 +67,6 @@ public class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand,
         var memberCount = await _db.ProjectMembers.CountAsync(m => m.ProjectId == project.Id, cancellationToken);
         var taskCount = await _db.Tasks.CountAsync(t => t.ProjectId == project.Id, cancellationToken);
 
-        return new ProjectDto(project.Id, project.Name, project.Description, project.Status.ToString(), project.CreatedAtUtc, memberCount, taskCount);
+        return new ProjectDto(project.Id, project.Name, project.Description, project.Status.ToString(), project.CreatedAtUtc, memberCount, taskCount, project.Icon, project.Color);
     }
 }

@@ -105,8 +105,11 @@ body {
   animation: pp-drop-in 140ms ease-out both;
 }
 
+/* `backwards`, not `both`: a filled-forward transform would leave the route
+   wrapper as a permanent containing block for fixed descendants, clipping
+   any non-portaled overlay to the content area. */
 .pp-page-enter {
-  animation: pp-slide-up 200ms ease-out both;
+  animation: pp-slide-up 200ms ease-out backwards;
 }
 
 .pp-palette-enter {
