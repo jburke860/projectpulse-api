@@ -1,4 +1,5 @@
 import { hashString, initialsFor } from '../lib/avatar'
+import { lightenColor } from '../lib/projectIcons'
 import { presenceTone, type Presence } from '../lib/presence'
 import { cn } from '../lib/cn'
 
@@ -23,13 +24,17 @@ interface AvatarProps {
   name: string
   /** Stable id used to pick the gradient; falls back to the name. */
   id?: string
+  /** User-chosen hex color; overrides the hash-based gradient. */
+  color?: string | null
   size?: keyof typeof sizes
   presence?: Presence
   className?: string
 }
 
-export function Avatar({ name, id, size = 'md', presence, className }: AvatarProps) {
-  const gradient = gradients[hashString(id ?? name) % gradients.length]
+export function Avatar({ name, id, color, size = 'md', presence, className }: AvatarProps) {
+  const gradient = color
+    ? `linear-gradient(135deg, ${color}, ${lightenColor(color)})`
+    : gradients[hashString(id ?? name) % gradients.length]
 
   return (
     <span className={cn('relative inline-flex shrink-0', className)}>

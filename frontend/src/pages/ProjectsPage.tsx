@@ -17,8 +17,9 @@ import { EmptyState } from '../components/EmptyState'
 import { ProjectGridSkeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { Badge, Button, Card } from '../components/ui'
+import { ProjectAppearancePicker } from '../components/ProjectAppearancePicker'
 import { getMutationErrorMessage } from '../lib/errors'
-import { lightenColor, projectColorOptions, projectIconOptions } from '../lib/projectIcons'
+import { projectColorOptions, projectIconOptions } from '../lib/projectIcons'
 import { formatProjectStatus, projectStatuses, projectStatusTone } from '../lib/projectStatus'
 import { projectRoles, type ProjectRole } from '../lib/roles'
 
@@ -264,60 +265,12 @@ export function ProjectsPage() {
                 ))}
               </select>
             </label>
-            <div className="pp-label">
-              Icon
-              <div role="radiogroup" aria-label="Project icon" className="flex flex-wrap gap-2">
-                {projectIconOptions.map((option) => {
-                  const selected = option.name === icon
-                  const OptionIcon = option.icon
-
-                  return (
-                    <button
-                      key={option.name}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={`${option.label} icon`}
-                      title={option.label}
-                      onClick={() => setIcon(option.name)}
-                      className={`flex h-11 w-11 items-center justify-center rounded-[0.85rem] border text-white transition ${
-                        selected
-                          ? 'border-white/40 ring-2 ring-[#ff7b22]/60 ring-offset-2 ring-offset-[#0a0d13]'
-                          : 'border-white/10 opacity-60 hover:opacity-100'
-                      }`}
-                      style={{ background: `linear-gradient(135deg, ${color}, ${lightenColor(color)})` }}
-                    >
-                      <OptionIcon className="h-5 w-5" aria-hidden />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <div className="pp-label">
-              Color
-              <div role="radiogroup" aria-label="Project color" className="flex flex-wrap items-center gap-2">
-                {projectColorOptions.map((option) => {
-                  const selected = option === color
-
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      aria-label={`Color ${option}`}
-                      onClick={() => setColor(option)}
-                      className={`h-8 w-8 rounded-full border transition ${
-                        selected
-                          ? 'border-white/70 ring-2 ring-white/30 ring-offset-2 ring-offset-[#0a0d13]'
-                          : 'border-white/10 opacity-70 hover:opacity-100'
-                      }`}
-                      style={{ background: `linear-gradient(135deg, ${option}, ${lightenColor(option)})` }}
-                    />
-                  )
-                })}
-              </div>
-            </div>
+            <ProjectAppearancePicker
+              icon={icon}
+              color={color}
+              onIconChange={setIcon}
+              onColorChange={setColor}
+            />
           </section>
 
           <section className="space-y-4 border-t pp-divider pt-5">

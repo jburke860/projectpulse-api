@@ -62,7 +62,7 @@ export function TeamsPage() {
             return (
               <li key={user.id}>
                 <Card className="flex items-center gap-4 p-5">
-                  <Avatar name={user.displayName} id={user.id} size="lg" presence={presence} />
+                  <Avatar name={user.displayName} id={user.id} color={user.avatarColor} size="lg" presence={presence} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-[#f8fafc]">{user.displayName}</p>
                     <p className="truncate text-xs text-[#8e99ad]">{user.email}</p>

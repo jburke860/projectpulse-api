@@ -246,7 +246,8 @@ async function optimisticallyPatchTask(
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { displayName: string }) => putData<User>('/api/users/me', body),
+    mutationFn: (body: { displayName: string; avatarColor?: string }) =>
+      putData<User>('/api/users/me', body),
     onSuccess: () => {
       toast.success('Profile updated.')
       // The display name is baked into users, activity messages, comments,
@@ -366,8 +367,13 @@ export function changeTaskStatus(taskId: string, status: string) {
 export function useUpdateProject(projectId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: { name: string; description?: string | null; status: string }) =>
-      putData<Project>(`/api/projects/${projectId}`, body),
+    mutationFn: (body: {
+      name: string
+      description?: string | null
+      status: string
+      icon?: string
+      color?: string
+    }) => putData<Project>(`/api/projects/${projectId}`, body),
     onError: toastMutationError,
     onSuccess: (project) => {
       toast.success('Project updated.')

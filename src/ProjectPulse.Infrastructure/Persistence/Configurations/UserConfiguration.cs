@@ -11,6 +11,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Email).HasMaxLength(256).IsRequired();
         builder.Property(u => u.DisplayName).HasMaxLength(200).IsRequired();
+        builder.Property(u => u.AvatarColor).HasMaxLength(16);
         builder.HasIndex(u => u.Email).IsUnique();
     }
 }

@@ -44,7 +44,8 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResult<U
                 u.AssignedTasks.Count(t =>
                     t.Status != Domain.Enums.TaskStatus.Done &&
                     t.Status != Domain.Enums.TaskStatus.Cancelled &&
-                    t.Project.Members.Any(pm => pm.UserId == currentUserId))))
+                    t.Project.Members.Any(pm => pm.UserId == currentUserId)),
+                u.AvatarColor))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<UserDto>(items, totalCount, page, pageSize);

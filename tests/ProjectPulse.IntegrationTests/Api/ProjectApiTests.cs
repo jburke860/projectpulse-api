@@ -50,15 +50,17 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
             HttpMethod.Put,
             "/api/users/me",
             session.SessionId,
-            new UpdateProfileRequest("Jamie Demo"));
+            new UpdateProfileRequest("Jamie Demo", "#8b5cf6"));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadFromJsonAsync<ApiResult<UserDto>>();
         body!.Data!.DisplayName.Should().Be("Jamie Demo");
+        body.Data.AvatarColor.Should().Be("#8b5cf6");
 
         var usersResponse = await SendWithDemoSessionAsync(HttpMethod.Get, "/api/users?pageSize=100", session.SessionId);
         var users = await usersResponse.Content.ReadFromJsonAsync<ApiResult<PagedResult<UserDto>>>();
-        users!.Data!.Items.Should().Contain(u => u.Id == session.UserId && u.DisplayName == "Jamie Demo");
+        users!.Data!.Items.Should().Contain(u =>
+            u.Id == session.UserId && u.DisplayName == "Jamie Demo" && u.AvatarColor == "#8b5cf6");
     }
 
     [Fact]
@@ -88,6 +90,36 @@ public class ProjectApiTests : IClassFixture<CustomWebApplicationFactory>
 
         var fetched = await _client.GetFromJsonAsync<ApiResult<ProjectDto>>($"/api/projects/{created.Data.Id}");
         fetched!.Data!.Icon.Should().Be("shield");
+        fetched.Data.Color.Should().Be("#ef4444");
+    }
+
+    [Fact]
+    public async Task UpdateProject_EditsDetailsAndKeepsAppearanceWhenOmitted()
+    {
+        var createResponse = await _client.PostAsJsonAsync(
+            "/api/projects",
+            new CreateProjectRequest("Editable Project", "Before edit", null, "rocket", "#ff7b22"));
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
+        var projectId = created!.Data!.Id;
+
+        // Name/description edit with new appearance.
+        var editResponse = await _client.PutAsJsonAsync(
+            $"/api/projects/{projectId}",
+            new UpdateProjectRequest("Edited Project", "After edit", "Active", "shield", "#ef4444"));
+        editResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var edited = await editResponse.Content.ReadFromJsonAsync<ApiResult<ProjectDto>>();
+        edited!.Data!.Name.Should().Be("Edited Project");
+        edited.Data.Description.Should().Be("After edit");
+        edited.Data.Icon.Should().Be("shield");
+        edited.Data.Color.Should().Be("#ef4444");
+
+        // Status-only style update (no icon/color) must keep the appearance.
+        await _client.PutAsJsonAsync(
+            $"/api/projects/{projectId}",
+            new UpdateProjectRequest("Edited Project", "After edit", "OnHold"));
+        var fetched = await _client.GetFromJsonAsync<ApiResult<ProjectDto>>($"/api/projects/{projectId}");
+        fetched!.Data!.Status.Should().Be("OnHold");
+        fetched.Data.Icon.Should().Be("shield");
         fetched.Data.Color.Should().Be("#ef4444");
     }
 

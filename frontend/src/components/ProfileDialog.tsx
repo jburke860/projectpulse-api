@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { UserRound } from 'lucide-react'
 import { useUpdateProfile } from '../api/queries'
 import { getMutationErrorMessage } from '../lib/errors'
+import { lightenColor, projectColorOptions } from '../lib/projectIcons'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { Avatar } from './Avatar'
 import { Button } from './ui'
@@ -11,12 +12,14 @@ interface ProfileDialogProps {
   userId: string
   name: string
   email: string
+  avatarColor: string | null
   onClose: () => void
 }
 
-export function ProfileDialog({ userId, name, email, onClose }: ProfileDialogProps) {
+export function ProfileDialog({ userId, name, email, avatarColor, onClose }: ProfileDialogProps) {
   const updateProfile = useUpdateProfile()
   const [displayName, setDisplayName] = useState(name)
+  const [color, setColor] = useState<string | null>(avatarColor)
   useEscapeToClose(onClose)
 
   const mutationError = getMutationErrorMessage(updateProfile.error)
@@ -26,7 +29,10 @@ export function ProfileDialog({ userId, name, email, onClose }: ProfileDialogPro
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!canSave) return
-    updateProfile.mutate({ displayName: trimmed }, { onSuccess: onClose })
+    updateProfile.mutate(
+      { displayName: trimmed, ...(color ? { avatarColor: color } : {}) },
+      { onSuccess: onClose },
+    )
   }
 
   // Portaled to <body> so transformed/filtered ancestors can never hijack
@@ -61,7 +67,7 @@ export function ProfileDialog({ userId, name, email, onClose }: ProfileDialogPro
           )}
 
           <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3">
-            <Avatar name={trimmed || name} id={userId || name} size="md" presence="online" />
+            <Avatar name={trimmed || name} id={userId || name} color={color} size="md" presence="online" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#f8fafc]">{trimmed || name}</p>
               <p className="truncate text-xs text-[#8e99ad]">How you appear across the workspace</p>
@@ -78,6 +84,32 @@ export function ProfileDialog({ userId, name, email, onClose }: ProfileDialogPro
               onChange={(e) => setDisplayName(e.target.value)}
             />
           </label>
+
+          <div className="pp-label">
+            Avatar color
+            <div role="radiogroup" aria-label="Avatar color" className="flex flex-wrap items-center gap-2">
+              {projectColorOptions.map((option) => {
+                const selected = option === color
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`Avatar color ${option}`}
+                    onClick={() => setColor(option)}
+                    className={`h-8 w-8 rounded-full border transition ${
+                      selected
+                        ? 'border-white/70 ring-2 ring-white/30 ring-offset-2 ring-offset-[#0a0d13]'
+                        : 'border-white/10 opacity-70 hover:opacity-100'
+                    }`}
+                    style={{ background: `linear-gradient(135deg, ${option}, ${lightenColor(option)})` }}
+                  />
+                )
+              })}
+            </div>
+          </div>
 
           <label className="pp-label">
             Email

@@ -68,10 +68,11 @@ interface SidebarContentProps {
   onNavigate?: () => void
   name: string
   email: string
+  avatarColor: string | null
   onEditProfile: () => void
 }
 
-function SidebarContent({ onNavigate, name, email, onEditProfile }: SidebarContentProps) {
+function SidebarContent({ onNavigate, name, email, avatarColor, onEditProfile }: SidebarContentProps) {
   const { apiDocsUrl, clearCurrentSession, userId } = useDemoSession()
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
@@ -181,7 +182,7 @@ function SidebarContent({ onNavigate, name, email, onEditProfile }: SidebarConte
             onClick={() => setUserMenuOpen((open) => !open)}
             className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:bg-white/[0.06]"
           >
-            <Avatar name={name} id={userId || name} presence="online" />
+            <Avatar name={name} id={userId || name} color={avatarColor} presence="online" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-[#f8fafc]">{name}</span>
               <span className="block truncate text-xs text-[#8e99ad]">{email}</span>
@@ -299,10 +300,12 @@ function NotificationBell() {
 function UserAvatarMenu({
   userId,
   name,
+  avatarColor,
   onEditProfile,
 }: {
   userId: string
   name: string
+  avatarColor: string | null
   onEditProfile: () => void
 }) {
   const { clearCurrentSession } = useDemoSession()
@@ -318,7 +321,7 @@ function UserAvatarMenu({
         onClick={() => setOpen((value) => !value)}
         className="rounded-full transition hover:opacity-90"
       >
-        <Avatar name={name} id={userId || name} size="md" />
+        <Avatar name={name} id={userId || name} color={avatarColor} size="md" />
       </button>
 
       {open && (
@@ -378,6 +381,7 @@ export function Layout() {
   const sessionUser = users.find((user) => user.id === userId)
   const displayName = sessionUser?.displayName ?? DEMO_USER_NAME
   const email = sessionUser?.email ?? DEMO_USER_EMAIL
+  const avatarColor = sessionUser?.avatarColor ?? null
 
   const openPalette = () => {
     window.dispatchEvent(new CustomEvent('pp:open-palette'))
@@ -387,7 +391,12 @@ export function Layout() {
     <div className="min-h-screen">
       <CommandPalette />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-white/10 bg-[#0a0d13]/90 lg:block">
-        <SidebarContent name={displayName} email={email} onEditProfile={() => setProfileOpen(true)} />
+        <SidebarContent
+          name={displayName}
+          email={email}
+          avatarColor={avatarColor}
+          onEditProfile={() => setProfileOpen(true)}
+        />
       </aside>
 
       {drawerOpen && (
@@ -411,6 +420,7 @@ export function Layout() {
               onNavigate={() => setDrawerOpen(false)}
               name={displayName}
               email={email}
+              avatarColor={avatarColor}
               onEditProfile={() => {
                 setDrawerOpen(false)
                 setProfileOpen(true)
@@ -449,6 +459,7 @@ export function Layout() {
               <UserAvatarMenu
                 userId={userId}
                 name={displayName}
+                avatarColor={avatarColor}
                 onEditProfile={() => setProfileOpen(true)}
               />
             </div>
@@ -475,6 +486,7 @@ export function Layout() {
           userId={userId}
           name={displayName}
           email={email}
+          avatarColor={avatarColor}
           onClose={() => setProfileOpen(false)}
         />
       )}

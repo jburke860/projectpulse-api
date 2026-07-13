@@ -147,7 +147,13 @@ describe('ProfileDialog', () => {
     })
     render(
       <QueryClientProvider client={queryClient}>
-        <ProfileDialog userId="user-1" name="Demo User" email="jeremy.demo@projectpulse.local" onClose={onClose} />
+        <ProfileDialog
+          userId="user-1"
+          name="Demo User"
+          email="jeremy.demo@projectpulse.local"
+          avatarColor={null}
+          onClose={onClose}
+        />
       </QueryClientProvider>,
     )
     return onClose

@@ -482,6 +482,7 @@ export function DashboardPage() {
                   <Avatar
                     name={member.displayName}
                     id={member.id}
+                    color={member.avatarColor}
                     presence={presenceFor(member.id, userId)}
                   />
                   <span className="min-w-0 flex-1">

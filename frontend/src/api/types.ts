@@ -128,6 +128,7 @@ export interface User {
   email: string
   projectCount: number
   assignedTaskCount: number
+  avatarColor: string | null
 }
 
 export interface WorkspaceAttachment {

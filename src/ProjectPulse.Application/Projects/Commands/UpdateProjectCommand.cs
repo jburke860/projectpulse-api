@@ -22,6 +22,11 @@ public class UpdateProjectCommandValidator : AbstractValidator<UpdateProjectComm
             .NotEmpty()
             .Must(s => Enum.TryParse<ProjectStatus>(s, true, out _))
             .WithMessage("Status must be one of: Planning, Active, OnHold, Completed.");
+        RuleFor(x => x.Request.Icon).MaximumLength(40);
+        RuleFor(x => x.Request.Color)
+            .Matches("^#[0-9a-fA-F]{6}$")
+            .When(x => x.Request.Color is not null)
+            .WithMessage("Color must be a hex value like #ff7b22.");
     }
 }
 
@@ -60,7 +65,7 @@ public class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand,
         }
 
         var status = Enum.Parse<ProjectStatus>(command.Request.Status, true);
-        project.Update(command.Request.Name, command.Request.Description, status);
+        project.Update(command.Request.Name, command.Request.Description, status, command.Request.Icon, command.Request.Color);
         await _audit.LogAsync(project.Id, null, AuditAction.Updated, nameof(Project), $"Project '{project.Name}' updated.", cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 

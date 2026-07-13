@@ -14,6 +14,10 @@ public class UpdateMyProfileCommandValidator : AbstractValidator<UpdateMyProfile
     public UpdateMyProfileCommandValidator()
     {
         RuleFor(x => x.Request.DisplayName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.Request.AvatarColor)
+            .Matches("^#[0-9a-fA-F]{6}$")
+            .When(x => x.Request.AvatarColor is not null)
+            .WithMessage("AvatarColor must be a hex value like #ff7b22.");
     }
 }
 
@@ -37,7 +41,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
                 ["demoSession"] = ["Start a demo session before editing the profile."]
             });
 
-        user.Rename(command.Request.DisplayName.Trim());
+        user.UpdateProfile(command.Request.DisplayName.Trim(), command.Request.AvatarColor);
         await _db.SaveChangesAsync(cancellationToken);
 
         var projectCount = await _db.ProjectMembers.CountAsync(m => m.UserId == user.Id, cancellationToken);
@@ -52,6 +56,7 @@ public class UpdateMyProfileCommandHandler : IRequestHandler<UpdateMyProfileComm
             user.DisplayName,
             DemoSessionConstants.PublicDemoEmail(user.Email),
             projectCount,
-            taskCount);
+            taskCount,
+            user.AvatarColor);
     }
 }

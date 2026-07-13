@@ -36,6 +36,7 @@ import {
   List,
   MoreHorizontal,
   Paperclip,
+  Pencil,
   Search,
   Trash2,
   Upload,
@@ -46,6 +47,7 @@ import type { LucideIcon } from 'lucide-react'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { Avatar } from '../components/Avatar'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { EditProjectDialog } from '../components/EditProjectDialog'
 import { FileTypeIcon } from '../components/FileTypeIcon'
 import { LabelChip } from '../components/LabelChip'
 import { CardSkeleton, Skeleton } from '../components/Skeleton'
@@ -159,6 +161,7 @@ export function ProjectDetailPage() {
   const [memberRole, setMemberRole] = useState('Member')
   const [showMemberForm, setShowMemberForm] = useState(false)
   const [showProjectMenu, setShowProjectMenu] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState<{ userId: string; displayName: string } | null>(null)
   const { userId: sessionUserId } = useDemoSession()
@@ -310,7 +313,7 @@ export function ProjectDetailPage() {
             </div>
             <p className="pp-subtitle mt-3 max-w-3xl">{project.description}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <select
               aria-label="Project status"
               className="pp-select w-auto text-sm"
@@ -348,7 +351,18 @@ export function ProjectDetailPage() {
                     className="fixed inset-0 z-40 cursor-default"
                     onClick={() => setShowProjectMenu(false)}
                   />
-                  <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-52 p-2 shadow-2xl">
+                  <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-52 space-y-1 p-2 shadow-2xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProjectMenu(false)
+                        setShowEditDialog(true)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-[#a9b1c0] transition hover:bg-white/[0.06] hover:text-[#f8fafc]"
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden />
+                      Edit project
+                    </button>
                     <button
                       type="button"
                       disabled={deleteProject.isPending}
@@ -970,6 +984,10 @@ export function ProjectDetailPage() {
           </Card>
         </div>
       </div>
+
+      {showEditDialog && (
+        <EditProjectDialog project={project} onClose={() => setShowEditDialog(false)} />
+      )}
 
       {selectedTaskId && (
         <TaskPanel

@@ -5,6 +5,7 @@ public record UserDto(
     string DisplayName,
     string Email,
     int ProjectCount,
-    int AssignedTaskCount);
+    int AssignedTaskCount,
+    string? AvatarColor = null);
 
-public record UpdateProfileRequest(string DisplayName);
+public record UpdateProfileRequest(string DisplayName, string? AvatarColor = null);

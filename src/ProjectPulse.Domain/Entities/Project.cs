@@ -30,11 +30,22 @@ public class Project : BaseEntity
         Color = color;
     }
 
-    public void Update(string name, string? description, ProjectStatus status)
+    public void Update(string name, string? description, ProjectStatus status, string? icon = null, string? color = null)
     {
         Name = name;
         Description = description;
         Status = status;
+        // Appearance is kept when omitted so status-only updates never wipe it.
+        if (icon is not null)
+        {
+            Icon = icon;
+        }
+
+        if (color is not null)
+        {
+            Color = color;
+        }
+
         Touch();
     }
 }

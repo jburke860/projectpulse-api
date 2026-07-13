@@ -6,6 +6,7 @@ public class User : BaseEntity
 {
     public string Email { get; private set; } = string.Empty;
     public string DisplayName { get; private set; } = string.Empty;
+    public string? AvatarColor { get; private set; }
 
     public ICollection<ProjectMember> Memberships { get; private set; } = [];
     public ICollection<TaskItem> AssignedTasks { get; private set; } = [];
@@ -25,9 +26,14 @@ public class User : BaseEntity
         Id = id;
     }
 
-    public void Rename(string displayName)
+    public void UpdateProfile(string displayName, string? avatarColor = null)
     {
         DisplayName = displayName;
+        if (avatarColor is not null)
+        {
+            AvatarColor = avatarColor;
+        }
+
         Touch();
     }
 }
