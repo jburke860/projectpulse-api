@@ -50,6 +50,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EditProjectDialog } from '../components/EditProjectDialog'
 import { FileTypeIcon } from '../components/FileTypeIcon'
 import { LabelChip } from '../components/LabelChip'
+import { MemberProfileDialog } from '../components/MemberProfileDialog'
 import { CardSkeleton, Skeleton } from '../components/Skeleton'
 import { ProjectIconTile } from '../components/ProjectIconTile'
 import { TaskBoard } from '../components/TaskBoard'
@@ -164,6 +165,7 @@ export function ProjectDetailPage() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [memberToRemove, setMemberToRemove] = useState<{ userId: string; displayName: string } | null>(null)
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const { userId: sessionUserId } = useDemoSession()
 
   if (!project) {
@@ -949,15 +951,21 @@ export function ProjectDetailPage() {
                   key={m.userId}
                   className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm"
                 >
-                  <Avatar
-                    name={m.displayName}
-                    id={m.userId}
-                    presence={presenceFor(m.userId, sessionUserId)}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-[#f8fafc]">{m.displayName}</p>
-                    <p className="truncate text-xs text-[#8e99ad]">{m.email}</p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProfileUserId(m.userId)}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left transition hover:bg-white/[0.04]"
+                  >
+                    <Avatar
+                      name={m.displayName}
+                      id={m.userId}
+                      presence={presenceFor(m.userId, sessionUserId)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold text-[#f8fafc]">{m.displayName}</span>
+                      <span className="block truncate text-xs text-[#8e99ad]">{m.email}</span>
+                    </span>
+                  </button>
                   <Badge tone={memberRoleTones[m.role] ?? 'neutral'}>{m.role}</Badge>
                   <button
                     type="button"
@@ -987,6 +995,14 @@ export function ProjectDetailPage() {
 
       {showEditDialog && (
         <EditProjectDialog project={project} onClose={() => setShowEditDialog(false)} />
+      )}
+
+      {profileUserId && (
+        <MemberProfileDialog
+          userId={profileUserId}
+          sessionUserId={sessionUserId}
+          onClose={() => setProfileUserId(null)}
+        />
       )}
 
       {selectedTaskId && (

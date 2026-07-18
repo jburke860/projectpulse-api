@@ -3,8 +3,9 @@ import { Search, Users } from 'lucide-react'
 import { useUsers } from '../api/queries'
 import { Avatar } from '../components/Avatar'
 import { EmptyState } from '../components/EmptyState'
+import { MemberProfileDialog } from '../components/MemberProfileDialog'
 import { CardSkeleton } from '../components/Skeleton'
-import { Card, PageHeader } from '../components/ui'
+import { PageHeader } from '../components/ui'
 import { useDemoSession } from '../demo/DemoSessionContext'
 import { presenceFor, presenceTone } from '../lib/presence'
 
@@ -12,6 +13,7 @@ export function TeamsPage() {
   const { data: users = [], isLoading } = useUsers()
   const { userId: sessionUserId } = useDemoSession()
   const [searchText, setSearchText] = useState('')
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
 
   const visibleUsers = users.filter(
     (user) =>
@@ -61,7 +63,11 @@ export function TeamsPage() {
 
             return (
               <li key={user.id}>
-                <Card className="flex items-center gap-4 p-5">
+                <button
+                  type="button"
+                  onClick={() => setProfileUserId(user.id)}
+                  className="pp-card pp-card-hover flex w-full items-center gap-4 p-5 text-left"
+                >
                   <Avatar name={user.displayName} id={user.id} color={user.avatarColor} size="lg" presence={presence} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-[#f8fafc]">{user.displayName}</p>
@@ -77,11 +83,19 @@ export function TeamsPage() {
                   >
                     {presenceTone[presence].label}
                   </span>
-                </Card>
+                </button>
               </li>
             )
           })}
         </ul>
+      )}
+
+      {profileUserId && (
+        <MemberProfileDialog
+          userId={profileUserId}
+          sessionUserId={sessionUserId}
+          onClose={() => setProfileUserId(null)}
+        />
       )}
     </div>
   )

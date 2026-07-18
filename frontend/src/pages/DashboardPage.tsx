@@ -19,6 +19,7 @@ import type { Task } from '../api/types'
 import { ActivityFeed } from '../components/ActivityFeed'
 import { Avatar } from '../components/Avatar'
 import { DonutChart, type DonutSegment } from '../components/DonutChart'
+import { MemberProfileDialog } from '../components/MemberProfileDialog'
 import { DashboardSkeleton } from '../components/Skeleton'
 import { TaskPreviewDialog } from '../components/TaskPreviewDialog'
 import { StatCard } from '../components/StatCard'
@@ -284,6 +285,7 @@ export function DashboardPage() {
   const { data: tasks = [] } = useTasks()
   const { data: users = [] } = useUsers()
   const { isStartingSession, startNewSession, userId } = useDemoSession()
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   const handleStartNewSession = async () => {
@@ -478,20 +480,26 @@ export function DashboardPage() {
 
             <ul className="mt-4 space-y-1.5">
               {topMembers.map((member) => (
-                <li key={member.id} className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
-                  <Avatar
-                    name={member.displayName}
-                    id={member.id}
-                    color={member.avatarColor}
-                    presence={presenceFor(member.id, userId)}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-[#f8fafc]">{member.displayName}</span>
-                    <span className="block truncate text-xs text-[#8e99ad]">{member.email}</span>
-                  </span>
-                  <span className="shrink-0 text-xs text-[#8e99ad]">
-                    {member.assignedTaskCount} task{member.assignedTaskCount === 1 ? '' : 's'}
-                  </span>
+                <li key={member.id}>
+                  <button
+                    type="button"
+                    onClick={() => setProfileUserId(member.id)}
+                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.04]"
+                  >
+                    <Avatar
+                      name={member.displayName}
+                      id={member.id}
+                      color={member.avatarColor}
+                      presence={presenceFor(member.id, userId)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-[#f8fafc]">{member.displayName}</span>
+                      <span className="block truncate text-xs text-[#8e99ad]">{member.email}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-[#8e99ad]">
+                      {member.assignedTaskCount} task{member.assignedTaskCount === 1 ? '' : 's'}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -508,6 +516,14 @@ export function DashboardPage() {
           <UpcomingDeadlinesCard tasks={tasks} />
         </div>
       </div>
+
+      {profileUserId && (
+        <MemberProfileDialog
+          userId={profileUserId}
+          sessionUserId={userId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </div>
   )
 }
