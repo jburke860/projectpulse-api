@@ -19,6 +19,7 @@ import {
   useUploadAttachment,
 } from '../api/queries'
 import { downloadFile } from '../api/client'
+import { useDemoSession } from '../demo/DemoSessionContext'
 import { getMutationErrorMessage } from '../lib/errors'
 import { isAssignableMember } from '../lib/roles'
 import {
@@ -30,6 +31,7 @@ import {
 } from '../lib/tasks'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { LabelChip } from './LabelChip'
+import { MemberProfileDialog } from './MemberProfileDialog'
 import { Badge, Button } from './ui'
 import type { Comment } from '../api/types'
 
@@ -88,7 +90,10 @@ function formatFileSize(bytes: number) {
 
 export function TaskPanel({ taskId, projectId, onClose, focusComment }: TaskPanelProps) {
   const { data: task, isLoading } = useTask(taskId)
-  useEscapeToClose(onClose)
+  const { userId: sessionUserId } = useDemoSession()
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
+  // Escape is claimed by the profile dialog while it is stacked on top.
+  useEscapeToClose(onClose, !profileUserId)
 
   // Portaled to <body> (overlay included) so animated/transformed ancestors
   // like the route-transition wrapper can never become the containing block
@@ -115,7 +120,15 @@ export function TaskPanel({ taskId, projectId, onClose, focusComment }: TaskPane
         projectId={projectId}
         onClose={onClose}
         focusComment={focusComment}
+        onShowProfile={setProfileUserId}
       />
+      {profileUserId && (
+        <MemberProfileDialog
+          userId={profileUserId}
+          sessionUserId={sessionUserId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </>,
     document.body,
   )
@@ -134,6 +147,7 @@ function TaskPanelOverlay({ onClose }: { onClose: () => void }) {
 
 interface LoadedTaskPanelProps extends TaskPanelProps {
   task: Task
+  onShowProfile: (userId: string) => void
 }
 
 function FactRow({ label, children }: { label: string; children: ReactNode }) {
@@ -145,7 +159,7 @@ function FactRow({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment }: LoadedTaskPanelProps) {
+function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment, onShowProfile }: LoadedTaskPanelProps) {
   const { data: comments = [] } = useTaskComments(taskId)
   const { data: members = [] } = useProjectMembers(projectId)
   const { data: projectLabels = [] } = useProjectLabels(projectId)
@@ -402,7 +416,17 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment }: Loa
               <FactRow label="Assignee">
                 <span className="inline-flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-[#8e99ad]" aria-hidden />
-                  {task.assigneeName ?? 'Unassigned'}
+                  {task.assigneeId ? (
+                    <button
+                      type="button"
+                      onClick={() => onShowProfile(task.assigneeId!)}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {task.assigneeName}
+                    </button>
+                  ) : (
+                    'Unassigned'
+                  )}
                 </span>
               </FactRow>
             </div>

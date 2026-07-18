@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   CheckCircle2,
   Circle,
@@ -31,15 +32,28 @@ const taskStatusIcons: Record<string, { icon: LucideIcon; color: string }> = {
 }
 
 export function TasksPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const assigneeParam = searchParams.get('assignee') ?? ''
   const [filters, setFilters] = useState<TaskFilterValues>(emptyTaskFilters)
   const [previewTask, setPreviewTask] = useState<Task | null>(null)
   const [projectId, setProjectId] = useState('')
   const [searchText, setSearchText] = useState('')
 
+  // Member profiles deep-link here with ?assignee=; the param overrides the
+  // menu state until the user steers the assignee filter elsewhere, which
+  // drops the param so the URL stops re-asserting it.
+  const effectiveFilters = assigneeParam ? { ...filters, assigneeId: assigneeParam } : filters
+  const applyFilters = (next: TaskFilterValues) => {
+    setFilters(next)
+    if (assigneeParam && next.assigneeId !== assigneeParam) {
+      setSearchParams({}, { replace: true })
+    }
+  }
+
   const taskFilters: TaskFilters = {
-    status: filters.status || undefined,
-    priority: filters.priority || undefined,
-    assigneeId: filters.assigneeId || undefined,
+    status: effectiveFilters.status || undefined,
+    priority: effectiveFilters.priority || undefined,
+    assigneeId: effectiveFilters.assigneeId || undefined,
   }
 
   const { data: projects = [] } = useProjects()
@@ -59,11 +73,16 @@ export function TasksPage() {
   const labelOptions = [...labelsByName.values()].sort((a, b) => a.name.localeCompare(b.name))
 
   const hasActiveFilters = Boolean(
-    filters.status || filters.priority || filters.assigneeId || filters.labelId || projectId || searchText,
+    effectiveFilters.status ||
+      effectiveFilters.priority ||
+      effectiveFilters.assigneeId ||
+      effectiveFilters.labelId ||
+      projectId ||
+      searchText,
   )
   const visibleTasks = tasks.filter(
     (task) =>
-      (!filters.labelId || task.labels.some((label) => label.name === filters.labelId)) &&
+      (!effectiveFilters.labelId || task.labels.some((label) => label.name === effectiveFilters.labelId)) &&
       (!searchText ||
         `${task.title} ${task.description ?? ''} ${task.projectName}`
           .toLowerCase()
@@ -110,17 +129,17 @@ export function TasksPage() {
           ))}
         </select>
         <TaskFilterMenu
-          filters={filters}
+          filters={effectiveFilters}
           assignees={users.map((user) => ({ userId: user.id, displayName: user.displayName }))}
           labels={labelOptions}
-          onChange={setFilters}
+          onChange={applyFilters}
         />
         {hasActiveFilters && (
           <button
             type="button"
             className="pp-button-ghost min-h-0 px-3 py-2 text-xs"
             onClick={() => {
-              setFilters(emptyTaskFilters)
+              applyFilters(emptyTaskFilters)
               setProjectId('')
               setSearchText('')
             }}

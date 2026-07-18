@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpRight, History, Pencil, UserRound } from 'lucide-react'
+import { ArrowUpRight, History, Pencil, SquareCheck, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useUserProfile } from '../api/queries'
 import { formatActivityTime, formatShortDate } from '../lib/dates'
@@ -58,13 +58,15 @@ export function MemberProfileDialog({ userId, sessionUserId, onClose }: MemberPr
   // the fixed positioning.
   return createPortal(
     <>
+      {/* z-55/60 instead of the usual 40/50: profiles can open from within the
+          task panel (z-50) and must stack above it. */}
       <button
         type="button"
-        className="pp-overlay-enter fixed inset-0 z-40 bg-black/55 backdrop-blur-[1px]"
+        className="pp-overlay-enter fixed inset-0 z-[55] bg-black/55 backdrop-blur-[1px]"
         aria-label="Close member profile"
         onClick={onClose}
       />
-      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 max-h-[min(85vh,44rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-5 shadow-2xl">
+      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-[60] max-h-[min(85vh,44rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b pp-divider pb-4">
           <div>
             <p className="pp-eyebrow">Member</p>
@@ -206,6 +208,18 @@ export function MemberProfileDialog({ userId, sessionUserId, onClose }: MemberPr
                 </ul>
               )}
             </section>
+
+            <button
+              type="button"
+              className="pp-button-primary w-full"
+              onClick={() => {
+                onClose()
+                navigate(`/tasks?assignee=${profile.id}`)
+              }}
+            >
+              <SquareCheck className="h-4 w-4" aria-hidden />
+              View assigned tasks
+            </button>
           </div>
         )}
       </aside>

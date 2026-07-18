@@ -97,4 +97,10 @@ describe('MemberProfileDialog', () => {
     fireEvent.click(await screen.findByText('Customer Portal Redesign'))
     expect(onClose).toHaveBeenCalledOnce()
   })
+
+  it('closes when jumping to the assignee-filtered tasks view', async () => {
+    const onClose = renderDialog()
+    fireEvent.click(await screen.findByRole('button', { name: /View assigned tasks/ }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
 })

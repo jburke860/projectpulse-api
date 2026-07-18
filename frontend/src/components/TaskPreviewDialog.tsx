@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUpRight, CalendarDays, User } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Task } from '../api/types'
+import { useDemoSession } from '../demo/DemoSessionContext'
 import { formatShortDate } from '../lib/dates'
 import { formatTaskStatus, isTaskOverdue, taskStatusTones } from '../lib/tasks'
 import { useEscapeToClose } from '../lib/useEscapeToClose'
 import { LabelChip } from './LabelChip'
+import { MemberProfileDialog } from './MemberProfileDialog'
 import { Badge } from './ui'
 
 interface TaskPreviewDialogProps {
@@ -15,7 +18,9 @@ interface TaskPreviewDialogProps {
 
 export function TaskPreviewDialog({ task, onClose }: TaskPreviewDialogProps) {
   const navigate = useNavigate()
-  useEscapeToClose(onClose, task !== null)
+  const { userId: sessionUserId } = useDemoSession()
+  const [profileUserId, setProfileUserId] = useState<string | null>(null)
+  useEscapeToClose(onClose, task !== null && !profileUserId)
 
   if (!task) return null
 
@@ -60,7 +65,17 @@ export function TaskPreviewDialog({ task, onClose }: TaskPreviewDialogProps) {
             </span>
             <span className="flex items-center gap-2 text-[#cbd5e1]">
               <User className="h-4 w-4 text-[#8e99ad]" aria-hidden />
-              {task.assigneeName ?? 'Unassigned'}
+              {task.assigneeId ? (
+                <button
+                  type="button"
+                  onClick={() => setProfileUserId(task.assigneeId)}
+                  className="truncate font-medium text-[#f8fafc] underline-offset-2 hover:underline"
+                >
+                  {task.assigneeName}
+                </button>
+              ) : (
+                'Unassigned'
+              )}
             </span>
           </div>
 
@@ -81,6 +96,14 @@ export function TaskPreviewDialog({ task, onClose }: TaskPreviewDialogProps) {
           </button>
         </div>
       </aside>
+
+      {profileUserId && (
+        <MemberProfileDialog
+          userId={profileUserId}
+          sessionUserId={sessionUserId}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </>,
     document.body,
   )
