@@ -131,6 +131,28 @@ export interface User {
   avatarColor: string | null
 }
 
+export interface UserProfileMembership {
+  projectId: string
+  projectName: string
+  projectStatus: string
+  role: string
+  icon: string | null
+  color: string | null
+}
+
+export interface UserProfile {
+  id: string
+  displayName: string
+  email: string
+  avatarColor: string | null
+  joinedAtUtc: string
+  activeTaskCount: number
+  completedTaskCount: number
+  overdueTaskCount: number
+  memberships: UserProfileMembership[]
+  recentActivity: AuditLog[]
+}
+
 export interface WorkspaceAttachment {
   id: string
   fileName: string

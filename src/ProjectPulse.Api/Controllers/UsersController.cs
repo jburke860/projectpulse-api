@@ -25,6 +25,15 @@ public class UsersController : ControllerBase
         return Ok(ApiResult<PagedResult<UserDto>>.Ok(result));
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ApiResult<UserProfileDto>>> GetById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetUserProfileQuery(id), cancellationToken);
+        return Ok(ApiResult<UserProfileDto>.Ok(result));
+    }
+
     [HttpPut("me")]
     public async Task<ActionResult<ApiResult<UserDto>>> UpdateMe(
         [FromBody] UpdateProfileRequest request,

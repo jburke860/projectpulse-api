@@ -15,6 +15,7 @@ import type {
   ProjectSummary,
   Task,
   User,
+  UserProfile,
   WorkspaceAttachment,
 } from './types'
 
@@ -47,6 +48,7 @@ export const queryKeys = {
   taskAttachments: (id: string) => ['taskAttachments', id] as const,
   activity: ['activity'] as const,
   users: ['users'] as const,
+  userProfile: (id: string) => ['userProfile', id] as const,
   workspaceAttachments: ['workspaceAttachments'] as const,
 }
 
@@ -164,6 +166,14 @@ export function useUsers() {
   return useQuery({
     queryKey: queryKeys.users,
     queryFn: () => getPagedItems<User>('/api/users?pageSize=100'),
+  })
+}
+
+export function useUserProfile(id: string) {
+  return useQuery({
+    queryKey: queryKeys.userProfile(id),
+    queryFn: () => getData<UserProfile>(`/api/users/${id}`),
+    enabled: !!id,
   })
 }
 
