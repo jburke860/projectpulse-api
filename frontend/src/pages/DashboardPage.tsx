@@ -160,46 +160,77 @@ function MyTasksCard({ tasks, userId }: { tasks: Task[]; userId: string }) {
           {tab === 'Overdue' ? 'Nothing is overdue. Great job!' : 'No tasks here yet.'}
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[34rem] text-left text-sm">
-            <thead>
-              <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
-                <th className="pb-2 pr-3 font-semibold">Task</th>
-                <th className="pb-2 pr-3 font-semibold">Project</th>
-                <th className="pb-2 pr-3 font-semibold">Priority</th>
-                <th className="pb-2 pr-3 font-semibold">Due Date</th>
-                <th className="pb-2 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((task) => {
-                const overdue = isTaskOverdue(task)
+        <>
+          {/* Phones get stacked rows; the five-column table would force the
+              whole page wider than the screen. */}
+          <ul className="mt-3 divide-y divide-white/[0.06] md:hidden">
+            {visible.map((task) => {
+              const overdue = isTaskOverdue(task)
 
-                return (
-                  <tr
-                    key={task.id}
+              return (
+                <li key={task.id}>
+                  <button
+                    type="button"
                     onClick={() => setPreviewTask(task)}
-                    className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
+                    className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition hover:bg-white/[0.04]"
                   >
-                    <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">
-                      {task.title}
-                    </td>
-                    <td className="max-w-[11rem] truncate py-2.5 pr-3 text-[#8e99ad]">{task.projectName}</td>
-                    <td className="py-2.5 pr-3">
-                      <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
-                    </td>
-                    <td className={`whitespace-nowrap py-2.5 pr-3 text-xs ${overdue ? 'font-semibold text-[#fca5a5]' : 'text-[#8e99ad]'}`}>
-                      {task.dueDateUtc ? formatShortDate(task.dueDateUtc) : 'None'}
-                    </td>
-                    <td className="py-2.5">
-                      <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-[#f8fafc]">{task.title}</span>
+                      <span className="mt-0.5 block text-xs text-[#8e99ad]">
+                        {task.projectName} · {task.priority} ·{' '}
+                        <span className={overdue ? 'font-semibold text-[#fca5a5]' : undefined}>
+                          {task.dueDateUtc ? `Due ${formatShortDate(task.dueDateUtc)}` : 'No due date'}
+                        </span>
+                      </span>
+                    </span>
+                    <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+
+          <div className="mt-4 hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[34rem] text-left text-sm">
+              <thead>
+                <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+                  <th className="pb-2 pr-3 font-semibold">Task</th>
+                  <th className="pb-2 pr-3 font-semibold">Project</th>
+                  <th className="pb-2 pr-3 font-semibold">Priority</th>
+                  <th className="pb-2 pr-3 font-semibold">Due Date</th>
+                  <th className="pb-2 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((task) => {
+                  const overdue = isTaskOverdue(task)
+
+                  return (
+                    <tr
+                      key={task.id}
+                      onClick={() => setPreviewTask(task)}
+                      className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
+                    >
+                      <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">
+                        {task.title}
+                      </td>
+                      <td className="max-w-[11rem] truncate py-2.5 pr-3 text-[#8e99ad]">{task.projectName}</td>
+                      <td className="py-2.5 pr-3">
+                        <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
+                      </td>
+                      <td className={`whitespace-nowrap py-2.5 pr-3 text-xs ${overdue ? 'font-semibold text-[#fca5a5]' : 'text-[#8e99ad]'}`}>
+                        {task.dueDateUtc ? formatShortDate(task.dueDateUtc) : 'None'}
+                      </td>
+                      <td className="py-2.5">
+                        <Badge tone={taskStatusTones[task.status] ?? 'neutral'}>{formatTaskStatus(task.status)}</Badge>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <Link
@@ -376,7 +407,7 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Total Projects" value={data.totalProjects} hint="All time" accent="ember" icon={FolderKanban} />
         <StatCard label="Open Tasks" value={data.openTasks} hint="Needs attention" accent="amber" icon={SquareCheck} />
         <StatCard label="Completed Tasks" value={data.completedTasks} hint="All caught up" accent="sunset" icon={CheckCircle2} />
@@ -387,13 +418,23 @@ export function DashboardPage() {
           accent="rose"
           icon={Clock}
         />
-        <StatCard label="Team Members" value={data.teamMemberCount} hint="Active" accent="violet" icon={Users} />
+        {/* Odd card out in the 2-col phone grid, so it spans the bottom row. */}
+        <StatCard
+          label="Team Members"
+          value={data.teamMemberCount}
+          hint="Active"
+          accent="violet"
+          icon={Users}
+          className="col-span-2 sm:col-span-1"
+        />
       </div>
 
       {/* Both columns are flex with a stretching bottom card so their
-          bottom edges align exactly regardless of content height. */}
+          bottom edges align exactly regardless of content height. min-w-0
+          keeps either column's intrinsic width from exceeding the phone
+          viewport, which would force the whole page to overflow sideways. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -410,7 +451,7 @@ export function DashboardPage() {
           <MyTasksCard tasks={tasks} userId={userId} />
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card className="p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -422,13 +463,15 @@ export function DashboardPage() {
               </Link>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-6">
+            {/* On phones the donut centers and the legend wraps below it at
+                full width instead of squeezing beside it. */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-6 sm:justify-start">
               <DonutChart
                 segments={donutSegments}
                 centerValue={`${completionPercent}%`}
                 centerLabel="Complete"
               />
-              <div className="min-w-0 flex-1 space-y-2.5">
+              <div className="w-full min-w-0 space-y-2.5 sm:w-auto sm:flex-1">
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
                   <span>Status</span>
                   <span className="flex gap-6">

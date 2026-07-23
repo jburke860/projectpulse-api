@@ -7,6 +7,7 @@ interface StatCardProps {
   hint?: string
   accent?: 'ember' | 'amber' | 'sunset' | 'rose' | 'violet'
   icon: LucideIcon
+  className?: string
 }
 
 const accents = {
@@ -32,13 +33,13 @@ const accents = {
   },
 }
 
-export function StatCard({ label, value, hint, accent = 'ember', icon: Icon }: StatCardProps) {
+export function StatCard({ label, value, hint, accent = 'ember', icon: Icon, className }: StatCardProps) {
   return (
-    <div className="pp-card p-5">
+    <div className={cn('pp-card p-4 sm:p-5', className)}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[#a9b1c0]">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-[#f8fafc]">{value}</p>
+          <p className="mt-2 text-2xl font-bold text-[#f8fafc] sm:text-3xl">{value}</p>
         </div>
         <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl', accents[accent].icon)}>
           <Icon className="h-5 w-5" aria-hidden />
