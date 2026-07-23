@@ -74,66 +74,109 @@ export function DocumentsPage() {
           }
         />
       ) : (
-        <Card className="overflow-x-auto p-2">
-          <table className="w-full min-w-[44rem] text-left text-sm">
-            <thead>
-              <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
-                <th className="px-3 py-3 font-semibold">Name</th>
-                <th className="px-3 py-3 font-semibold">Location</th>
-                <th className="px-3 py-3 font-semibold">Size</th>
-                <th className="px-3 py-3 font-semibold">Added</th>
-                <th className="px-3 py-3 text-right font-semibold">Download</th>
-              </tr>
-            </thead>
-            <tbody>
+        <>
+          {/* Phones get stacked file rows; the five-column table would force
+              the whole page wider than the screen. */}
+          <Card className="p-2 md:hidden">
+            <ul className="divide-y divide-white/[0.06]">
               {visible.map((attachment) => (
-                <tr key={attachment.id} className="border-t border-white/[0.06] transition hover:bg-white/[0.03]">
-                  <td className="px-3 py-3">
-                    <div className="flex items-center gap-3">
-                      <FileTypeIcon fileName={attachment.fileName} />
-                      <span className="max-w-[16rem] truncate font-semibold text-[#f8fafc]">
-                        {attachment.fileName}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="max-w-[16rem] px-3 py-3">
+                <li key={attachment.id} className="flex items-center gap-3 px-2 py-3">
+                  <FileTypeIcon fileName={attachment.fileName} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[#f8fafc]">{attachment.fileName}</p>
                     <Link
                       to={
                         attachment.taskId
                           ? `/projects/${attachment.projectId}?taskId=${attachment.taskId}`
                           : `/projects/${attachment.projectId}`
                       }
-                      className="block truncate text-[#a9b1c0] transition hover:text-[#ffb36c]"
+                      className="block truncate text-xs text-[#a9b1c0] transition hover:text-[#ffb36c]"
                     >
                       {attachment.projectName}
                       {attachment.taskTitle ? ` · ${attachment.taskTitle}` : ' · Project files'}
                     </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-[#8e99ad]">
-                    {formatFileSize(attachment.sizeBytes)}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-[#8e99ad]">
-                    {formatShortDate(attachment.createdAtUtc)}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <button
-                      type="button"
-                      aria-label={`Download ${attachment.fileName}`}
-                      className="pp-button-ghost min-h-0 p-1.5"
-                      onClick={() => {
-                        downloadFile(downloadUrl(attachment), attachment.fileName).catch(() =>
-                          toast.error(`Could not download "${attachment.fileName}".`),
-                        )
-                      }}
-                    >
-                      <Download className="h-4 w-4" aria-hidden />
-                    </button>
-                  </td>
-                </tr>
+                    <p className="mt-0.5 text-xs text-[#8e99ad]">
+                      {formatFileSize(attachment.sizeBytes)} · {formatShortDate(attachment.createdAtUtc)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Download ${attachment.fileName}`}
+                    className="pp-button-ghost min-h-0 shrink-0 p-1.5"
+                    onClick={() => {
+                      downloadFile(downloadUrl(attachment), attachment.fileName).catch(() =>
+                        toast.error(`Could not download "${attachment.fileName}".`),
+                      )
+                    }}
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </Card>
+            </ul>
+          </Card>
+
+          <Card className="hidden overflow-x-auto p-2 md:block">
+            <table className="w-full min-w-[44rem] text-left text-sm">
+              <thead>
+                <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+                  <th className="px-3 py-3 font-semibold">Name</th>
+                  <th className="px-3 py-3 font-semibold">Location</th>
+                  <th className="px-3 py-3 font-semibold">Size</th>
+                  <th className="px-3 py-3 font-semibold">Added</th>
+                  <th className="px-3 py-3 text-right font-semibold">Download</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((attachment) => (
+                  <tr key={attachment.id} className="border-t border-white/[0.06] transition hover:bg-white/[0.03]">
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <FileTypeIcon fileName={attachment.fileName} />
+                        <span className="max-w-[16rem] truncate font-semibold text-[#f8fafc]">
+                          {attachment.fileName}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="max-w-[16rem] px-3 py-3">
+                      <Link
+                        to={
+                          attachment.taskId
+                            ? `/projects/${attachment.projectId}?taskId=${attachment.taskId}`
+                            : `/projects/${attachment.projectId}`
+                        }
+                        className="block truncate text-[#a9b1c0] transition hover:text-[#ffb36c]"
+                      >
+                        {attachment.projectName}
+                        {attachment.taskTitle ? ` · ${attachment.taskTitle}` : ' · Project files'}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-[#8e99ad]">
+                      {formatFileSize(attachment.sizeBytes)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-[#8e99ad]">
+                      {formatShortDate(attachment.createdAtUtc)}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <button
+                        type="button"
+                        aria-label={`Download ${attachment.fileName}`}
+                        className="pp-button-ghost min-h-0 p-1.5"
+                        onClick={() => {
+                          downloadFile(downloadUrl(attachment), attachment.fileName).catch(() =>
+                            toast.error(`Could not download "${attachment.fileName}".`),
+                          )
+                        }}
+                      >
+                        <Download className="h-4 w-4" aria-hidden />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
     </div>
   )

@@ -79,15 +79,19 @@ export function ReportsPage() {
         description={`${dashboard.totalTasks} tasks across ${dashboard.totalProjects} projects, ${completionPercent}% complete overall.`}
       />
 
+      {/* min-w-0 on the cards keeps their intrinsic width from forcing the
+          page wider than a phone screen. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-5 sm:p-6">
+        <Card className="min-w-0 p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <PieChart className="h-4 w-4 text-[#ffb36c]" aria-hidden />
             <h2 className="text-lg font-bold text-[#f8fafc]">Tasks by Status</h2>
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-6">
+          {/* On phones the donut centers and the legend wraps below it at
+              full width instead of squeezing beside it. */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-6 sm:justify-start">
             <DonutChart segments={statusSegments} centerValue={`${completionPercent}%`} centerLabel="Complete" />
-            <div className="min-w-0 flex-1 space-y-2.5">
+            <div className="w-full min-w-0 space-y-2.5 sm:w-auto sm:flex-1">
               {statusSegments.map((segment) => (
                 <div key={segment.label} className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2 text-[#cbd5e1]">
@@ -106,7 +110,7 @@ export function ReportsPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card className="min-w-0 p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-[#ffb36c]" aria-hidden />
             <h2 className="text-lg font-bold text-[#f8fafc]">Tasks by Priority</h2>
@@ -168,40 +172,67 @@ export function ReportsPage() {
         {overdueTasks.length === 0 ? (
           <p className="mt-4 text-sm text-[#8e99ad]">Nothing is overdue. Great job!</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-left text-sm">
-              <thead>
-                <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
-                  <th className="pb-2 pr-3 font-semibold">Task</th>
-                  <th className="pb-2 pr-3 font-semibold">Project</th>
-                  <th className="pb-2 pr-3 font-semibold">Assignee</th>
-                  <th className="pb-2 pr-3 font-semibold">Priority</th>
-                  <th className="pb-2 font-semibold">Due</th>
-                </tr>
-              </thead>
-              <tbody>
-                {overdueTasks.map((task) => (
-                  <tr
-                    key={task.id}
+          <>
+            {/* Phones get stacked rows; the five-column table would force the
+                whole page wider than the screen. */}
+            <ul className="mt-3 divide-y divide-white/[0.06] md:hidden">
+              {overdueTasks.map((task) => (
+                <li key={task.id}>
+                  <button
+                    type="button"
                     onClick={() => setPreviewTask(task)}
-                    className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
+                    className="flex w-full items-center justify-between gap-3 py-2.5 text-left transition hover:bg-white/[0.04]"
                   >
-                    <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">{task.title}</td>
-                    <td className="max-w-[11rem] truncate py-2.5 pr-3 text-[#8e99ad]">{task.projectName}</td>
-                    <td className="max-w-[9rem] truncate py-2.5 pr-3 text-[#8e99ad]">
-                      {task.assigneeName ?? 'Unassigned'}
-                    </td>
-                    <td className="py-2.5 pr-3">
-                      <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
-                    </td>
-                    <td className="whitespace-nowrap py-2.5 text-xs font-semibold text-[#fca5a5]">
-                      {task.dueDateUtc ? formatShortDate(task.dueDateUtc) : 'None'}
-                    </td>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-[#f8fafc]">{task.title}</span>
+                      <span className="mt-0.5 block text-xs text-[#8e99ad]">
+                        {task.projectName} · {task.assigneeName ?? 'Unassigned'} ·{' '}
+                        <span className="font-semibold text-[#fca5a5]">
+                          {task.dueDateUtc ? `Due ${formatShortDate(task.dueDateUtc)}` : 'No due date'}
+                        </span>
+                      </span>
+                    </span>
+                    <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-4 hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[34rem] text-left text-sm">
+                <thead>
+                  <tr className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
+                    <th className="pb-2 pr-3 font-semibold">Task</th>
+                    <th className="pb-2 pr-3 font-semibold">Project</th>
+                    <th className="pb-2 pr-3 font-semibold">Assignee</th>
+                    <th className="pb-2 pr-3 font-semibold">Priority</th>
+                    <th className="pb-2 font-semibold">Due</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {overdueTasks.map((task) => (
+                    <tr
+                      key={task.id}
+                      onClick={() => setPreviewTask(task)}
+                      className="cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.04]"
+                    >
+                      <td className="max-w-[14rem] truncate py-2.5 pr-3 font-medium text-[#f8fafc]">{task.title}</td>
+                      <td className="max-w-[11rem] truncate py-2.5 pr-3 text-[#8e99ad]">{task.projectName}</td>
+                      <td className="max-w-[9rem] truncate py-2.5 pr-3 text-[#8e99ad]">
+                        {task.assigneeName ?? 'Unassigned'}
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <Badge tone={taskPriorityTones[task.priority] ?? 'neutral'}>{task.priority}</Badge>
+                      </td>
+                      <td className="whitespace-nowrap py-2.5 text-xs font-semibold text-[#fca5a5]">
+                        {task.dueDateUtc ? formatShortDate(task.dueDateUtc) : 'None'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                </table>
+            </div>
+          </>
         )}
       </Card>
 
