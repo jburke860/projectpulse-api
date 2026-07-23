@@ -42,6 +42,12 @@ export function CalendarPage() {
     0,
   )
 
+  // Phone agenda: only this month's days that have something scheduled.
+  const agendaDays = grid
+    .filter((day) => day.getMonth() === view.month)
+    .map((day) => ({ day, dayTasks: tasksByDay.get(dateKey(day)) ?? [] }))
+    .filter(({ dayTasks }) => dayTasks.length > 0)
+
   const shiftMonth = (delta: number) => {
     setView(({ year, month }) => {
       const next = new Date(year, month + delta, 1)
@@ -87,7 +93,63 @@ export function CalendarPage() {
       <Card className="overflow-hidden p-4 sm:p-5">
         <h2 className="text-lg font-bold text-[#f8fafc]">{monthLabel(view.year, view.month)}</h2>
 
-        <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/[0.06]">
+        {/* Phones get an agenda list: seven ~50px columns are unreadable, so
+            the month grid only renders from md up. */}
+        <div className="mt-4 space-y-5 md:hidden">
+          {agendaDays.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-white/10 p-5 text-center text-sm text-[#8e99ad]">
+              Nothing is due in {monthLabel(view.year, view.month)}.
+            </p>
+          ) : (
+            agendaDays.map(({ day, dayTasks }) => {
+              const isToday = isSameDay(day, today)
+
+              return (
+                <div key={day.toISOString()}>
+                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#8e99ad]">
+                    <span
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                        isToday ? 'bg-[#ff7b22] text-[#1a1005]' : 'bg-white/[0.06] text-[#a9b1c0]'
+                      }`}
+                    >
+                      {day.getDate()}
+                    </span>
+                    {weekdays[day.getDay()]}
+                    {isToday && <span className="font-semibold text-[#ffb36c]">Today</span>}
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {dayTasks.map((task) => {
+                      const color = taskColor(task)
+
+                      return (
+                        <li key={task.id}>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewTask(task)}
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-[#e2e8f0] transition hover:brightness-125"
+                            style={{ backgroundColor: `${color}24` }}
+                          >
+                            <span
+                              className="h-1.5 w-1.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: color }}
+                              aria-hidden
+                            />
+                            <span className="min-w-0 flex-1 truncate">{task.title}</span>
+                            <span className="max-w-[45%] shrink-0 truncate text-xs text-[#8e99ad]">
+                              {task.projectName}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="mt-4 hidden grid-cols-7 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/[0.06] md:grid">
           {weekdays.map((day) => (
             <div
               key={day}

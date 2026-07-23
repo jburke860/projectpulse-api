@@ -455,7 +455,7 @@ export function ProjectDetailPage() {
             {projectAttachments.map((attachment) => (
               <li
                 key={attachment.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm transition hover:border-white/20"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm transition hover:border-white/20"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <FileTypeIcon fileName={attachment.fileName} />
@@ -494,8 +494,10 @@ export function ProjectDetailPage() {
         )}
       </Card>
 
+      {/* min-w-0 keeps either column's intrinsic width from forcing the page
+          wider than a phone viewport. */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="lg:col-span-2 space-y-4">
+        <section className="min-w-0 space-y-4 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="pp-eyebrow">Execution</p>
@@ -867,7 +869,7 @@ export function ProjectDetailPage() {
           )}
         </section>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
