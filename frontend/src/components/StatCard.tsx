@@ -34,17 +34,17 @@ const accents = {
 }
 
 export function StatCard({ label, value, hint, accent = 'ember', icon: Icon, className }: StatCardProps) {
+  // flex-1 on the label row absorbs the height difference between one- and
+  // two-line labels, so the value and hint bottom-align across a card row.
   return (
-    <div className={cn('pp-card p-4 sm:p-5', className)}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-[#a9b1c0]">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-[#f8fafc] sm:text-3xl">{value}</p>
-        </div>
-        <span className={cn('flex h-10 w-10 items-center justify-center rounded-xl', accents[accent].icon)}>
+    <div className={cn('pp-card flex flex-col p-4 sm:p-5', className)}>
+      <div className="flex flex-1 items-start justify-between gap-4">
+        <p className="text-sm font-medium text-[#a9b1c0]">{label}</p>
+        <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', accents[accent].icon)}>
           <Icon className="h-5 w-5" aria-hidden />
         </span>
       </div>
+      <p className="mt-2 text-2xl font-bold text-[#f8fafc] sm:text-3xl">{value}</p>
       <div className="mt-4 flex items-center gap-2">
         <span className={cn('h-1.5 w-1.5 rounded-full', accents[accent].marker)} />
         <p className="text-xs text-[#7f8a9d]">{hint ?? 'Workspace total'}</p>

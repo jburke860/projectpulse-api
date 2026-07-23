@@ -109,7 +109,9 @@ function SidebarContent({ onNavigate, name, email, avatarColor, onEditProfile }:
       </nav>
 
       <div className="space-y-3 p-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        {/* Decorative card is desktop-only; in the phone drawer it just
+            pushes the user card around. */}
+        <div className="hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 lg:block">
           <p className="flex items-center gap-2 text-sm font-bold text-[#f8fafc]">
             <Zap className="h-4 w-4 text-[#ffb36c]" aria-hidden />
             Upgrade to Pro
