@@ -36,7 +36,7 @@ export function TaskPreviewDialog({ task, onClose }: TaskPreviewDialogProps) {
         aria-label="Close task preview"
         onClick={onClose}
       />
-      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 p-5 shadow-2xl">
+      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b pp-divider pb-4">
           <div className="min-w-0">
             <p className="truncate text-xs text-[#8e99ad]">{task.projectName}</p>

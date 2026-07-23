@@ -45,7 +45,7 @@ export function ProfileDialog({ userId, name, email, avatarColor, onClose }: Pro
         aria-label="Close profile"
         onClick={onClose}
       />
-      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 p-6 shadow-2xl">
+      <aside className="pp-card pp-dialog-enter fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b pp-divider pb-4">
           <div>
             <p className="pp-eyebrow">Account</p>

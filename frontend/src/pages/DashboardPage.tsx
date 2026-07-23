@@ -80,7 +80,7 @@ function QuickAddMenu() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-64 p-2 shadow-2xl">
+          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] p-2 shadow-2xl">
             <button
               type="button"
               onClick={() => {

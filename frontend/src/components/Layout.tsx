@@ -240,7 +240,9 @@ function NotificationBell() {
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-96 p-2 shadow-2xl">
+          {/* Full-width sheet under the sticky header on phones; an anchored
+              w-96 panel would hang off the left edge of a 390px screen. */}
+          <div className="pp-card pp-menu-enter fixed inset-x-4 top-[4.5rem] z-50 p-2 shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96">
             <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">
               Your notifications
             </p>

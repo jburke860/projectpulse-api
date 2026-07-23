@@ -294,7 +294,7 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment, onSho
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">Status</label>
                 <select
@@ -325,7 +325,7 @@ function LoadedTaskPanel({ task, taskId, projectId, onClose, focusComment, onSho
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wide text-[#8e99ad]">Due date</label>
                 <input

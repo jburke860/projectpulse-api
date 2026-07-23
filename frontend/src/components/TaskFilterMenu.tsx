@@ -53,7 +53,10 @@ export function TaskFilterMenu({ filters, assignees, labels, onChange }: TaskFil
             className="fixed inset-0 z-40 cursor-default"
             onClick={() => setOpen(false)}
           />
-          <div className="pp-card pp-menu-enter absolute right-0 top-full z-50 mt-2 w-72 space-y-4 p-4 shadow-2xl">
+          {/* The Filters button can sit anywhere in a wrapped control row on
+              phones, so the panel pins below the sticky header instead of
+              anchoring to the button. */}
+          <div className="pp-card pp-menu-enter fixed inset-x-4 top-[4.5rem] z-50 space-y-4 p-4 shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72">
             <label className="pp-label">
               Status
               <select
